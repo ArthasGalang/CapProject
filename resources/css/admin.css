@@ -59,6 +59,9 @@
     font-size: 1.125rem;
 }
 
+
+/* Sidebar */
+
 .sidebar {
     position: fixed;
     top: 0;
@@ -70,7 +73,6 @@
     display: flex;
     flex-direction: column;
     transition: left 0.3s ease-in-out;
-    z-index: 1000;
 }
 
 .sidebar.open {
@@ -154,3 +156,37 @@
 .logout-link:hover {
     color: #dc2626;
 }
+
+
+/* Dashboard */
+
+.dbHeader{
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: #111827;
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.dbCardContainer{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+}
+
+.dbCard{
+    height: 150px;
+    width: 20%;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    background-color: #fff;
+    margin: 2rem;
+    gap: 1rem;
+}
+
+
