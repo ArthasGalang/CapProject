@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #2ECC71;
+  --color-secondary: #34980B;
+  --color-red: #E74C3C;
+  --color-orange: #E7B53C;
+  --color-gray: #BDC3C7;
+  --color-gray-medium: #5C6060;
+  --color-gray-dark: #555555;
+}
+
+.theme-dark {
+  --color-primary: #34980B; 
+  --color-secondary: #2ECC71;
+  --color-red: #C0392B;
+  --color-orange: #D35400;
+  --color-gray: #7F8C8D;
+}
+
+.slogan {
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+    margin-top: 10%;
+}
+.slogan .sloganTop{
+    font-size: 2.5rem;
+    color: var(--color-primary);
+}
+.slogan .sloganBottom{
+    font-size: 1.3rem;
+    color: var(--color-gray-dark);
+}
+
+.authButtons {
+  display: flex;
+  justify-content: center;
+  margin-top: 3rem;
+  gap: 1rem; 
+}
+
+.authButtons a {
+  width: 150px;   
+  height: 45px;
+  display: flex;  
+  justify-content: center;
+  align-items: center;
+
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+  text-align: center;
+  font-weight: 500;
+}
+
+.registerBtn {
+  background-color: #ffffff;
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary);
+}
+
+.registerBtn:hover {
+    background-color: color-mix(in srgb, var(--color-primary) 90%, transparent);
+    color: #ffffff;
+}
+
+.loginBtn {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border: 2px solid var(--color-primary);
+}
+
+.loginBtn:hover {
+  background-color: #ffffff;
+  color: color-mix(in srgb, var(--color-primary) 90%, transparent);
+}
