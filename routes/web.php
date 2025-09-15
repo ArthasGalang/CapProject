@@ -24,8 +24,13 @@ use Inertia\Inertia;
 //     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 // });
 
-require __DIR__.'/auth.php';
+// require __DIR__.'/auth.php';
 
 Route::get('/', function () {
     return Inertia::render('Landing'); 
 });
+
+Route::get('/admin/dashboard', function () {
+    return Inertia::render('Admin/Dashboard');
+});
+// ->middleware(['auth', 'verified', 'admin'])->name('admin.dashboard');
