@@ -2,15 +2,15 @@ import React from "react";
 import { ShoppingCart, User, Search } from "lucide-react";
 
 const Header = () => {
-  const [showShopModal, setShowShopModal] = React.useState(false);
+  const [showShopModal, setShowShopModal ] = React.useState(false);
 
   return (
     <>
-      <header className="w-full shadow-md bg-white">
-        <nav className="container mx-auto flex items-center justify-between py-4 px-6">
+      <header className="w-full shadow-md bg-white" style={{ backgroundColor: "#2ccc71", boxShadow: '0 2px 8px rgba(44,204,113,0.07)'}}  >
+        <nav className="container mx-auto flex items-center justify-between py-4 px-6" >
           {/* Left: Logo */}
           <a href="/" className="text-2xl font-bold text-gray-800 cursor-pointer">
-            NegoGen T.
+            <span style={{color: '#fafafaff'}}>NegoGen T.</span>
           </a>
 
           {/* Middle: Search Bar */}
@@ -29,23 +29,35 @@ const Header = () => {
 
           {/* Right: Nav Items */}
           <div className="flex items-center space-x-6">
-            <button type="button" className="text-gray-700 hover:text-gray-900 text-sm" onClick={() => setShowShopModal(true)}>
-              Shop
+            <a
+              href="/browse"
+              className="text-gray-700 hover:text-gray-900 text-sm"
+              style={{color: '#fafafaff'}}
+            >
+              Browse
+            </a>
+            <button type="button" className="text-gray-700 hover:text-gray-900 text-sm" 
+            style={{color: '#fafafaff'}}
+            onClick={() => setShowShopModal(true)}>
+              Your Shops
             </button>
             <a
               href="/contact"
               className="text-gray-700 hover:text-gray-900 text-sm"
+              style={{color: '#fafafaff'}}
             >
               Contact
             </a>
 
             {/* User */}
-            <a href="/account" className="text-gray-700 hover:text-gray-900">
+            <a href="/account" className="text-gray-700 hover:text-gray-900"
+            style={{color: '#fafafaff'}}>
               <User size={22} />
             </a>
 
             {/* Cart */}
-            <a href="/cart" className="relative text-gray-700 hover:text-gray-900">
+            <a href="/cart" className="relative text-gray-700 hover:text-gray-900"
+            style={{color: '#fafafaff'}}>
               <ShoppingCart size={22} />
               <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
                 3

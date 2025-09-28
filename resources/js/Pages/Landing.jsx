@@ -128,7 +128,10 @@ const Landing = () => {
                                     <form className="authModalForm">
                                         <input type="email" placeholder="Email" />
                                         <input type="password" placeholder="Password" />
-                                        <button type="submit">Login</button>
+                                        
+                                      <div style={{ marginTop: '0.7rem', width: '100%' }}>
+                                        <button type="submit" style={{ width: '100%', fontWeight: '600', fontSize: '1rem', height: '46px', borderRadius: '0.5rem' }} class="loginBtn">Login</button>
+                                      </div>
                                     </form>
                                 ) : (
                                     <>
@@ -190,7 +193,8 @@ const Landing = () => {
                                         </form>
                                       </div>
                                       <div style={{ marginTop: '0.7rem', width: '100%' }}>
-                                        <button type="submit" style={{ width: '100%' }} class="registerBtn">Register</button>
+                                        <button type="submit" style={{ width: '100%', fontWeight: '600', fontSize: '1rem', height: '46px', borderRadius: '0.5rem' }} class="loginBtn">Register</button>
+
                                       </div>
                                     </>
                                 )}

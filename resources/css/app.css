@@ -4,15 +4,16 @@
   text-align: center;
   /* Fading green gradient to transparent background */
   background: linear-gradient(180deg, #2ECC71 0%, rgba(46,204,113,0.7) 60%, rgba(46,204,113,0.0) 100%);
+  padding-bottom: 12%;
 }
 .heroTitle {
-  color: #31573a;
+  color: #fafafaff;
   font-size: 2.8rem;
   font-weight: 700;
   margin-bottom: 1rem;
 }
 .heroSubtitle {
-  color: #304135;
+  color: #fafafaff;
   font-size: 1.5rem;
   font-weight: 400;
   margin-bottom: 2rem;

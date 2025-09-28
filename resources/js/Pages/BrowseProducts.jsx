@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "../../css/app.css";
+import '@css/app.css';
 import Header from "../Components/Header"; // Corrected import path
 
 // Mock categories and products (reuse from Landing.jsx for now)
