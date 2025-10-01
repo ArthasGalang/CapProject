@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Header from "@/Components/Header";
+import AuthModal from "@/Components/AuthModal";
 import "../../css/app.css";
 // import Footer from "@/Components/Footer";
 
@@ -109,96 +110,12 @@ const Landing = () => {
                 </div>
             </section>
 
-            {/* Auth Modal */}
-            {showModal && (
-                <div className="modalOverlay">
-                    <div className="authModal">
-                        <button className="authModalClose" onClick={() => setShowModal(false)}>&times;</button>
-                        <div className="authModalContent">
-                            <div className="authModalLeft">
-                                <h2>{modalTab === 'login' ? 'Welcome Back!' : 'Join the Community!'}</h2>
-                                <p>{modalTab === 'login' ? 'Log in to discover and shop local treasures.' : 'Register to start buying and selling in your barangay.'}</p>
-                            </div>
-                            <div className="authModalRight">
-                                <div className="authModalTabs">
-                                    <button className={modalTab === 'login' ? 'active' : ''} onClick={() => setModalTab('login')}>Login</button>
-                                    <button className={modalTab === 'register' ? 'active' : ''} onClick={() => setModalTab('register')}>Register</button>
-                                </div>
-                                {modalTab === 'login' ? (
-                                    <form className="authModalForm">
-                                        <input type="email" placeholder="Email" />
-                                        <input type="password" placeholder="Password" />
-                                        <button type="submit">Login</button>
-                                    </form>
-                                ) : (
-                                    <>
-                                      <div style={{ maxHeight: 320, overflowY: 'auto', width: '100%' }}>
-                                        <form className="authModalForm" style={{
-                                            display: 'grid',
-                                            gridTemplateColumns: '180px 180px',
-                                            gap: '1.1rem 1.2rem',
-                                            marginBottom: '1.2rem',
-                                            justifyContent: 'center',
-                                            alignItems: 'start',
-                                            width: '100%',
-                                            minWidth: 0,
-                                            marginLeft: 'auto',
-                                            marginRight: 'auto'
-                                        }}>
-                                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                              <label style={{ fontWeight: 500, marginBottom: 4 }}>First Name</label>
-                                              <input type="text" placeholder="" />
-                                          </div>
-                                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                              <label style={{ fontWeight: 500, marginBottom: 4 }}>Last Name</label>
-                                              <input type="text" placeholder="" />
-                                          </div>
-                                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                              <label style={{ fontWeight: 500, marginBottom: 4 }}>Age</label>
-                                              <input type="number" placeholder="" />
-                                          </div>
-                                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                              <label style={{ fontWeight: 500, marginBottom: 4 }}>Mobile Number</label>
-                                              <input type="text" placeholder="" />
-                                          </div>
-                                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                              <label style={{ fontWeight: 500, marginBottom: 4 }}>Email</label>
-                                              <input type="email" placeholder="name@example.com" />
-                                          </div>
-                                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                              <label style={{ fontWeight: 500, marginBottom: 4 }}>Password</label>
-                                              <input type="password" placeholder="" />
-                                          </div>
-                                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                              <label style={{ fontWeight: 500, marginBottom: 4 }}>Confirm Password</label>
-                                              <input type="password" placeholder="" />
-                                          </div>
-                                          <div></div>
-                                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                              <label style={{ fontWeight: 500, marginBottom: 4 }}>Barangay</label>
-                                              <input type="text" placeholder="" />
-                                          </div>
-                                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                              <label style={{ fontWeight: 500, marginBottom: 4 }}>Municipality</label>
-                                              <input type="text" placeholder="" />
-                                          </div>
-                                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                                              <label style={{ fontWeight: 500, marginBottom: 4 }}>Street</label>
-                                              <input type="text" placeholder="" />
-                                          </div>
-                                          <div></div>
-                                        </form>
-                                      </div>
-                                      <div style={{ marginTop: '0.7rem', width: '100%' }}>
-                                        <button type="submit" style={{ width: '100%' }} class="registerBtn">Register</button>
-                                      </div>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <AuthModal
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                initialTab={modalTab}
+            />
+
 
             {/* Categories Carousel Section */}
             <section className="categoryListSection">
@@ -224,16 +141,19 @@ const Landing = () => {
                     {(shopItems[activeCategory.slug] || []).map(item => (
                         <div
                             key={item.name}
-                            className="shopItemCard"
-                            style={{ boxShadow: '0 2px 8px rgba(44,204,113,0.07)', border: '1.5px solid #eee', borderRadius: '1rem', padding: '1rem', minWidth: '180px', maxWidth: '220px', width: '100%', cursor: 'pointer', transition: 'box-shadow 0.2s' }}
+                            className="shopItemCard landing-shop-item-card"
                             onClick={() => window.location.href = '/product'}
                         >
-                            <img src={item.image} alt={item.name} className="shopItemImage" style={{ width: '100%', height: '110px', objectFit: 'cover', borderRadius: '0.7rem', marginBottom: '0.8rem' }} />
-                            <div className="shopItemName" style={{ fontSize: '1.08rem', fontWeight: '600', marginBottom: '0.18rem', color: '#222' }}>{item.name}</div>
-                            <div className="shopItemPrice" style={{ fontWeight: '700', fontSize: '1rem', color: '#222', marginBottom: '0.18rem' }}>{item.price}</div>
-                            <div style={{ color: 'var(--color-primary)', fontSize: '0.92rem', marginBottom: '0.8rem' }}>{activeCategory.name}</div>
-                            <button className="registerBtn" style={{ width: '100%', marginBottom: '0.35rem', fontWeight: '600', fontSize: '1rem', height: '36px' }} onClick={e => e.stopPropagation()}>Add to Cart</button>
-                            <button className="loginBtn" style={{ width: '100%', fontWeight: '600', fontSize: '1rem', height: '36px' }} onClick={e => e.stopPropagation()}>Buy Now</button>
+                            <img src={item.image} alt={item.name} className="shopItemImage landing-shop-item-image" />
+                            <div className="landing-shop-item-name">{item.name}</div>
+                            <div className="landing-shop-item-price">{item.price}</div>
+                            <div className="landing-shop-item-category">{activeCategory.name}</div>
+                            <div className="productButtons">
+                            <button className="registerBtn landing-add-to-cart-btn" onClick={e => e.stopPropagation()}>Add to Cart</button>
+                            </div>
+                            <div className="authButtons">
+                            <button className="loginBtn landing-buy-now-btn" onClick={e => e.stopPropagation()}>Buy Now</button>
+                            </div>
                         </div>
                     ))}
                 </div>
