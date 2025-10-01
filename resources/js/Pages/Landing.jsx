@@ -79,6 +79,7 @@ const Landing = () => {
     const activeCategory = categories[activeIdx];
     const [showModal, setShowModal] = useState(false);
     const [modalTab, setModalTab] = useState('login'); // 'login' or 'register'
+    const [hoveredIdx, setHoveredIdx] = useState(null);
 
     // Auto-move carousel every 2.5 seconds
     useEffect(() => {
@@ -119,7 +120,10 @@ const Landing = () => {
 
             {/* Categories Carousel Section */}
             <section className="categoryListSection">
-                <h3 className="categoryListTitle">Shop by Category</h3>
+                <div style={{display: 'flex', alignItems: 'center', marginBottom: '1.5rem'}}>
+                    <h3 className="categoryListTitle" style={{marginBottom: 0}}>Shop by Category</h3>
+                    <div className="section-divider"></div>
+                </div>
                 <div className="categoryCarousel">
                     {categories.map((category, idx) => (
                         <div
@@ -136,26 +140,47 @@ const Landing = () => {
 
             {/* Shop Items Section */}
             <section className="shopItemsSection">
-                <h3 className="shopItemsTitle">{activeCategory.name} Items</h3>
+                <div style={{display: 'flex', alignItems: 'center', marginBottom: '1.2rem'}}>
+                    <h3 className="shopItemsTitle" style={{marginBottom: 0}}>{activeCategory.name} Items</h3>
+                    <div className="section-divider"></div>
+                </div>
                 <div className="shopItemsGrid">
-                    {(shopItems[activeCategory.slug] || []).map(item => (
-                        <div
-                            key={item.name}
-                            className="shopItemCard landing-shop-item-card"
-                            onClick={() => window.location.href = '/product'}
-                        >
-                            <img src={item.image} alt={item.name} className="shopItemImage landing-shop-item-image" />
-                            <div className="landing-shop-item-name">{item.name}</div>
-                            <div className="landing-shop-item-price">{item.price}</div>
-                            <div className="landing-shop-item-category">{activeCategory.name}</div>
-                            <div className="productButtons">
-                            <button className="registerBtn landing-add-to-cart-btn" onClick={e => e.stopPropagation()}>Add to Cart</button>
+                    {(shopItems[activeCategory.slug] || []).map((item, idx) => {
+                        const isHovered = hoveredIdx === idx;
+                        // Use fixed rating and sold count for all products
+                        const rating = 4.7;
+                        const sold = 320;
+                        // Extract price number
+                        const priceNum = parseInt(item.price.replace('₱', '').replace(',', '').split('/')[0]);
+                        return (
+                            <div
+                                key={item.name}
+                                className={`product-card ${isHovered ? 'product-card--hovered' : ''}`}
+                                onMouseEnter={() => setHoveredIdx(idx)}
+                                onMouseLeave={() => setHoveredIdx(null)}
+                                onClick={() => window.location.href = '/product'}
+                            >
+                                <img src={item.image} alt={item.name} className="product-image" />
+                                <div className="product-name">{item.name}</div>
+                                {/* Slide container for info/buttons */}
+                                <div className={`product-info ${isHovered ? 'product-info--hidden' : ''}`}>
+                                    <div className="product-price">₱{priceNum.toLocaleString()}</div>
+                                    <div className="product-rating">
+                                        <span className="product-rating-stars">
+                                            {'★'.repeat(4)}<span style={{ opacity: 0.5 }}>★</span>
+                                            <span className="product-rating-number">{rating}</span>
+                                        </span>
+                                        <span className="product-sold">{sold} sold</span>
+                                    </div>
+                                </div>
+                                {/* Slide up buttons on hover */}
+                                <div className={`product-buttons ${isHovered ? 'product-buttons--visible' : ''}`}>
+                                    <button className="add-to-cart-btn" onClick={e => e.stopPropagation()}>Add to Cart</button>
+                                    <button className="buy-now-btn" onClick={e => e.stopPropagation()}>Buy Now</button>
+                                </div>
                             </div>
-                            <div className="authButtons">
-                            <button className="loginBtn landing-buy-now-btn" onClick={e => e.stopPropagation()}>Buy Now</button>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
                 <div className="viewMoreWrapper">
                     <button className="viewMoreBtn" onClick={() => window.location.href = '/browse'}>View more</button>

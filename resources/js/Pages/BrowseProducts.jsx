@@ -39,6 +39,7 @@ const BrowseProducts = () => {
     const [search, setSearch] = useState("");
     const [minPrice, setMinPrice] = useState("");
     const [maxPrice, setMaxPrice] = useState("");
+    const [showFilter, setShowFilter] = useState(false);
 
     // Filter logic
     const filteredProducts = allProducts.filter(product => {
@@ -54,35 +55,43 @@ const BrowseProducts = () => {
         <Header />
         <div className="browse-products-page">
             <div className="browse-products-container">
-                {/* Sidebar Filter */}
-                <aside className="browse-sidebar">
-                    <div>
-                        <h3 className="filter-title">Filter Products</h3>
-                         <div className="filter-group">
-                             <label className="filter-label">Category</label>
-                             <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} className="filter-select">
-                                 {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                             </select>
-                         </div>
-                         <div className="filter-group">
-                             <label className="filter-label">Search</label>
-                             <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Product name..." className="filter-input" />
-                         </div>
-                         <div className="price-inputs">
-                             <div className="price-input-group">
-                                 <label className="filter-label">Min Price</label>
-                                 <input type="number" value={minPrice} onChange={e => setMinPrice(e.target.value)} placeholder="₱0" className="filter-input" />
-                             </div>
-                             <div className="price-input-group">
-                                 <label className="filter-label">Max Price</label>
-                                 <input type="number" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} placeholder="₱99999" className="filter-input" />
-                             </div>
-                         </div>
-                     </div>
-                 </aside>
+
                 {/* Products Grid */}
                 <main className="products-main">
-                    <h2 className="products-title">Browse Products</h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        <h2 className="products-title">Browse Products</h2>
+                        <button
+                            className="filter-toggle-btn"
+                            onClick={() => setShowFilter(!showFilter)}
+                            aria-label="Toggle filter options"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5zm-3-3a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div className={`filter-container ${showFilter ? 'filter-open' : ''}`}>
+                        <div className="filter-group">
+                            <label className="filter-label">Category</label>
+                            <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} className="filter-select">
+                                {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                            </select>
+                        </div>
+                        <div className="filter-group">
+                            <label className="filter-label">Search</label>
+                            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Product name..." className="filter-input" />
+                        </div>
+                        <div className="price-inputs">
+                            <div className="price-input-group">
+                                <label className="filter-label">Min Price</label>
+                                <input type="number" value={minPrice} onChange={e => setMinPrice(e.target.value)} placeholder="₱0" className="filter-input" />
+                            </div>
+                            <div className="price-input-group">
+                                <label className="filter-label">Max Price</label>
+                                <input type="number" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} placeholder="₱99999" className="filter-input" />
+                            </div>
+                        </div>
+                    </div>
                     <div className="products-grid">
                         {filteredProducts.length === 0 ? (
                             <div className="no-products">No products found.</div>
@@ -125,7 +134,7 @@ const BrowseProducts = () => {
                 </main>
             </div>
         </div>
-    </>   
+        </>
     );
 };
 
