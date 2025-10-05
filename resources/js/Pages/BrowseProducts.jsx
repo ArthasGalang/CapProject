@@ -107,6 +107,7 @@ const BrowseProducts = () => {
                                         className={`product-card ${isHovered ? 'product-card--hovered' : ''}`}
                                         onMouseEnter={() => setHoveredIdx(idx)}
                                         onMouseLeave={() => setHoveredIdx(null)}
+                                        onClick={() => window.location.href = '/product'}
                                     >
                                         <img src={product.image} alt={product.name} className="product-image" />
                                         <div className="product-name">{product.name}</div>

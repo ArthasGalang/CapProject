@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
 
+import React, { useState } from 'react';
 import Header from '../Components/Header';
 import Footer from '../Components/Footer';
 import ShopSidebar from '../Components/ShopSidebar';
-
+import AddProductModal from '../Components/AddProductModal';
 
 const initialForm = {
   CategoryID: '',
@@ -101,49 +101,12 @@ const ShopProducts = () => {
       </main>
       {/* Modal for Add New Product */}
       {showModal && (
-        <div className="shop-modal-overlay">
-          <div className="shop-modal">
-            <button onClick={handleCloseModal} className="shop-modal-close">&times;</button>
-            <h2 className="shop-modal-title">Add New Product</h2>
-            <form onSubmit={handleSubmit} className="shop-modal-form">
-              <div>
-                <label className="shop-modal-label">Category</label>
-                <input name="CategoryID" value={form.CategoryID} onChange={handleChange} required placeholder="Category ID" className="shop-modal-input" />
-              </div>
-              <div>
-                <label className="shop-modal-label">SKU</label>
-                <input name="SKU" value={form.SKU} onChange={handleChange} required placeholder="SKU" className="shop-modal-input" />
-              </div>
-              <div>
-                <label className="shop-modal-label">Product Name</label>
-                <input name="ProductName" value={form.ProductName} onChange={handleChange} required placeholder="Product Name" className="shop-modal-input" />
-              </div>
-              <div>
-                <label className="shop-modal-label">Description</label>
-                <textarea name="Description" value={form.Description} onChange={handleChange} required placeholder="Description" className="shop-modal-textarea" />
-              </div>
-              <div className="shop-modal-row">
-                <div style={{ flex: 1 }}>
-                  <label className="shop-modal-label">Price</label>
-                  <input name="Price" value={form.Price} onChange={handleChange} required placeholder="Price" type="number" min="0" step="0.01" className="shop-modal-input" />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label className="shop-modal-label">Stock</label>
-                  <input name="Stock" value={form.Stock} onChange={handleChange} required placeholder="Stock" type="number" min="0" step="1" className="shop-modal-input" />
-                </div>
-              </div>
-              <div>
-                <label className="shop-modal-label">Image</label>
-                <input name="Image" type="file" accept="image/*" onChange={handleChange} className="shop-modal-file" />
-              </div>
-              <div className="shop-modal-checkbox-wrapper">
-                <input name="isActive" type="checkbox" checked={form.isActive} onChange={handleChange} id="isActive" />
-                <label htmlFor="isActive" className="shop-modal-checkbox-label">Active</label>
-              </div>
-              <button type="submit" className="shop-modal-submit">Add Product</button>
-            </form>
-          </div>
-        </div>
+        <AddProductModal
+          form={form}
+          onChange={handleChange}
+          onClose={handleCloseModal}
+          onSubmit={handleSubmit}
+        />
       )}
       <Footer />
     </>
