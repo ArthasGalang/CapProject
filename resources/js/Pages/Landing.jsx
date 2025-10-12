@@ -98,6 +98,14 @@ const Landing = () => {
         }
     }, [showModal]);
 
+    // Check if user is logged in
+    let isLoggedIn = false;
+    try {
+        isLoggedIn = !!localStorage.getItem('user');
+    } catch (e) {
+        isLoggedIn = false;
+    }
+
     return (
         <>
             <Header />
@@ -106,8 +114,14 @@ const Landing = () => {
                 <h1 className="heroTitle">Experience Community Commerce at its Finest</h1>
                 <h3 className="heroSubtitle">Your gateway to local treasures in Barangay Gen T. De Leon</h3>
                 <div className="authButtons">
-                    <button className="registerBtn" onClick={() => { setShowModal(true); setModalTab('register'); }}>Register</button>
-                    <button className="loginBtn" onClick={() => { setShowModal(true); setModalTab('login'); }}>Login</button>
+                    {!isLoggedIn ? (
+                        <>
+                            <button className="registerBtn" onClick={() => { setShowModal(true); setModalTab('register'); }}>Register</button>
+                            <button className="loginBtn" onClick={() => { setShowModal(true); setModalTab('login'); }}>Login</button>
+                        </>
+                    ) : (
+                        <button className="loginBtn" onClick={() => window.location.href = '/browse'}>Shop Now</button>
+                    )}
                 </div>
             </section>
 

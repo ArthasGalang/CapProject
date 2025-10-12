@@ -1,0 +1,1 @@
+- [x] Fix the API route for registration in routes/api.php by changing '/api/register' to 'register'

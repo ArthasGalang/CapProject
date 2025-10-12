@@ -37,6 +37,10 @@ Route::get('/browse', function () {
     return Inertia::render('BrowseProducts');
 });
 
+Route::get('/account', function () {
+    return Inertia::render('Account');
+});
+
 
 Route::get('/shop', function () {
     return Inertia::render('ShopDashboard');
