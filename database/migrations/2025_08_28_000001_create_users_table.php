@@ -15,25 +15,31 @@ return new class extends Migration
             $table->string('Email')->unique();
             $table->string('Password');
             $table->string('ContactNumber');
+            $table->string('ProfileImage')->nullable();
+            $table->unsignedBigInteger('DefaultAddress')->nullable();
+            $table->enum('Status', ['Active', 'Busy', 'Offline'])->default('Active');
             $table->timestamp('email_verified_at')->nullable();
+            $table->string('remember_token')->nullable();
             $table->timestamps();
+            $table->foreign('DefaultAddress')->references('AddressID')->on('addresses')->nullOnDelete();
         });
             DB::statement("ALTER TABLE users AUTO_INCREMENT = 1000000;");
 
 
         Schema::create('shops', function (Blueprint $table) {
-            $table->id('ShopID');
-            $table->foreignId('UserID')
-                  ->constrained('users', 'UserID') 
-                  ->onDelete('cascade');
-            $table->string('ShopName');
-            $table->string('ShopDescription');
-            $table->string('LogoImage');
-            $table->string('BackgroundImage');
-            $table->string('Address');
-            $table->string('BusinessPermit');
-            $table->boolean('isVerified')->default(false);
-            $table->timestamps();
+        $table->id('ShopID');
+        $table->foreignId('UserID')
+            ->constrained('users', 'UserID') 
+            ->onDelete('cascade');
+        $table->string('ShopName');
+        $table->string('ShopDescription');
+        $table->string('LogoImage');
+        $table->string('BackgroundImage');
+        $table->string('Address');
+        $table->string('BusinessPermit');
+        $table->boolean('isVerified')->default(false);
+        $table->boolean('hasPhysical')->default(false);
+        $table->timestamps();
         });
             DB::statement("ALTER TABLE shops AUTO_INCREMENT = 10;");
 

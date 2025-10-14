@@ -15,6 +15,24 @@ const Header = () => {
     userId = null;
   }
 
+  // On mount, check if userId exists in DB
+  React.useEffect(() => {
+    if (!userId) return;
+    // Replace with your actual API endpoint
+    fetch(`/api/check-user/${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.exists) {
+          localStorage.clear();
+          window.location.reload();
+        }
+      })
+      .catch(() => {
+        localStorage.clear();
+        window.location.reload();
+      });
+  }, []);
+
   return (
     <>
       <header className="header">

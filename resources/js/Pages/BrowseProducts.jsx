@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import '@css/app.css';
 import Header from "../Components/Header"; // Corrected import path
 
-// Mock categories and products (reuse from Landing.jsx for now)
+
 const categories = [
     "All",
     "Electronics",
@@ -17,20 +17,15 @@ const categories = [
     "Pets"
 ];
 
-const allProducts = [
-    { name: 'Smartphone', price: 8000, category: 'Electronics', image: 'https://via.placeholder.com/120?text=Phone' },
-    { name: 'Laptop', price: 25000, category: 'Electronics', image: 'https://via.placeholder.com/120?text=Laptop' },
-    { name: 'Novel', price: 350, category: 'Books', image: 'https://via.placeholder.com/120?text=Novel' },
-    { name: 'T-Shirt', price: 150, category: 'Clothing', image: 'https://via.placeholder.com/120?text=TShirt' },
-    { name: 'Chair', price: 600, category: 'Home', image: 'https://via.placeholder.com/120?text=Chair' },
-    { name: 'Toy Car', price: 120, category: 'Toys', image: 'https://via.placeholder.com/120?text=ToyCar' },
-    { name: 'Rice', price: 50, category: 'Groceries', image: 'https://via.placeholder.com/120?text=Rice' },
-    { name: 'Lipstick', price: 250, category: 'Beauty', image: 'https://via.placeholder.com/120?text=Lipstick' },
-    { name: 'Basketball', price: 500, category: 'Sports', image: 'https://via.placeholder.com/120?text=Basketball' },
-    { name: 'Car Wax', price: 180, category: 'Automotive', image: 'https://via.placeholder.com/120?text=CarWax' },
-    { name: 'Dog Food', price: 300, category: 'Pets', image: 'https://via.placeholder.com/120?text=DogFood' },
-    // ...add more as needed
-];
+const [allProducts, setAllProducts] = React.useState([]);
+
+React.useEffect(() => {
+    fetch('/api/products')
+        .then(res => res.json())
+        .then(data => {
+            setAllProducts(data);
+        });
+}, []);
 
 const BrowseProducts = () => {
     const [hoveredIdx, setHoveredIdx] = useState(null);
@@ -43,10 +38,12 @@ const BrowseProducts = () => {
 
     // Filter logic
     const filteredProducts = allProducts.filter(product => {
-        const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
-        const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase());
-        const matchesMin = minPrice === "" || product.price >= Number(minPrice);
-        const matchesMax = maxPrice === "" || product.price <= Number(maxPrice);
+        const matchesCategory = selectedCategory === "All" || product.CategoryName === selectedCategory || product.category === selectedCategory;
+        const name = product.ProductName || product.name;
+        const price = product.Price || product.price;
+        const matchesSearch = name.toLowerCase().includes(search.toLowerCase());
+        const matchesMin = minPrice === "" || price >= Number(minPrice);
+        const matchesMax = maxPrice === "" || price <= Number(maxPrice);
         return matchesCategory && matchesSearch && matchesMin && matchesMax;
     });
 
@@ -103,17 +100,16 @@ const BrowseProducts = () => {
                                 const sold = 320;
                                 return (
                                     <div
-                                        key={product.name}
+                                        key={product.ProductID || product.name}
                                         className={`product-card ${isHovered ? 'product-card--hovered' : ''}`}
                                         onMouseEnter={() => setHoveredIdx(idx)}
                                         onMouseLeave={() => setHoveredIdx(null)}
-                                        onClick={() => window.location.href = '/product'}
+                                        onClick={() => window.location.href = `/product/${product.ProductID || ''}`}
                                     >
-                                        <img src={product.image} alt={product.name} className="product-image" />
-                                        <div className="product-name">{product.name}</div>
-                                        {/* Slide container for info/buttons */}
+                                        <img src={product.Image || product.image} alt={product.ProductName || product.name} className="product-image" />
+                                        <div className="product-name">{product.ProductName || product.name}</div>
                                         <div className={`product-info ${isHovered ? 'product-info--hidden' : ''}`}>
-                                            <div className="product-price">₱{product.price.toLocaleString()}</div>
+                                            <div className="product-price">₱{(product.Price || product.price || 0).toLocaleString()}</div>
                                             <div className="product-rating">
                                                 <span className="product-rating-stars">
                                                     {'★'.repeat(4)}<span style={{ opacity: 0.5 }}>★</span>
@@ -122,7 +118,6 @@ const BrowseProducts = () => {
                                                 <span className="product-sold">{sold} sold</span>
                                             </div>
                                         </div>
-                                        {/* Slide up buttons on hover */}
                                         <div className={`product-buttons ${isHovered ? 'product-buttons--visible' : ''}`}>
                                             <button className="add-to-cart-btn">Add to Cart</button>
                                             <button className="buy-now-btn">Buy Now</button>

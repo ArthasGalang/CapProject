@@ -20,59 +20,9 @@ const categories = [
 
 
 
-// Mock shop items by category
-const shopItems = {
-    electronics: [
-        { name: 'Smartphone', price: '₱8,000', image: 'https://via.placeholder.com/80?text=Phone' },
-        { name: 'Laptop', price: '₱25,000', image: 'https://via.placeholder.com/80?text=Laptop' },
-        { name: 'Headphones', price: '₱1,200', image: 'https://via.placeholder.com/80?text=Headphones' },
-    ],
-    books: [
-        { name: 'Novel', price: '₱350', image: 'https://via.placeholder.com/80?text=Novel' },
-        { name: 'Textbook', price: '₱500', image: 'https://via.placeholder.com/80?text=Textbook' },
-        { name: 'Comics', price: '₱200', image: 'https://via.placeholder.com/80?text=Comics' },
-    ],
-    clothing: [
-        { name: 'T-Shirt', price: '₱150', image: 'https://via.placeholder.com/80?text=TShirt' },
-        { name: 'Jeans', price: '₱400', image: 'https://via.placeholder.com/80?text=Jeans' },
-        { name: 'Jacket', price: '₱800', image: 'https://via.placeholder.com/80?text=Jacket' },
-    ],
-    home: [
-        { name: 'Chair', price: '₱600', image: 'https://via.placeholder.com/80?text=Chair' },
-        { name: 'Table', price: '₱1,200', image: 'https://via.placeholder.com/80?text=Table' },
-        { name: 'Lamp', price: '₱350', image: 'https://via.placeholder.com/80?text=Lamp' },
-    ],
-    toys: [
-        { name: 'Toy Car', price: '₱120', image: 'https://via.placeholder.com/80?text=ToyCar' },
-        { name: 'Doll', price: '₱180', image: 'https://via.placeholder.com/80?text=Doll' },
-        { name: 'Puzzle', price: '₱90', image: 'https://via.placeholder.com/80?text=Puzzle' },
-    ],
-    groceries: [
-        { name: 'Rice', price: '₱50/kg', image: 'https://via.placeholder.com/80?text=Rice' },
-        { name: 'Eggs', price: '₱80/dozen', image: 'https://via.placeholder.com/80?text=Eggs' },
-        { name: 'Milk', price: '₱60', image: 'https://via.placeholder.com/80?text=Milk' },
-    ],
-    beauty: [
-        { name: 'Lipstick', price: '₱250', image: 'https://via.placeholder.com/80?text=Lipstick' },
-        { name: 'Shampoo', price: '₱120', image: 'https://via.placeholder.com/80?text=Shampoo' },
-        { name: 'Soap', price: '₱40', image: 'https://via.placeholder.com/80?text=Soap' },
-    ],
-    sports: [
-        { name: 'Basketball', price: '₱500', image: 'https://via.placeholder.com/80?text=Basketball' },
-        { name: 'Shoes', price: '₱1,200', image: 'https://via.placeholder.com/80?text=Shoes' },
-        { name: 'Jersey', price: '₱350', image: 'https://via.placeholder.com/80?text=Jersey' },
-    ],
-    automotive: [
-        { name: 'Car Wax', price: '₱180', image: 'https://via.placeholder.com/80?text=CarWax' },
-        { name: 'Motor Oil', price: '₱350', image: 'https://via.placeholder.com/80?text=MotorOil' },
-        { name: 'Air Freshener', price: '₱60', image: 'https://via.placeholder.com/80?text=AirFreshener' },
-    ],
-    pets: [
-        { name: 'Dog Food', price: '₱300', image: 'https://via.placeholder.com/80?text=DogFood' },
-        { name: 'Cat Toy', price: '₱90', image: 'https://via.placeholder.com/80?text=CatToy' },
-        { name: 'Leash', price: '₱120', image: 'https://via.placeholder.com/80?text=Leash' },
-    ],
-};
+
+
+// ...existing code...
 
 const Landing = () => {
     const [activeIdx, setActiveIdx] = useState(0);
@@ -80,6 +30,33 @@ const Landing = () => {
     const [showModal, setShowModal] = useState(false);
     const [modalTab, setModalTab] = useState('login'); // 'login' or 'register'
     const [hoveredIdx, setHoveredIdx] = useState(null);
+    const [productsByCategory, setProductsByCategory] = useState({});
+
+    // Fetch products from API and organize by category
+    useEffect(() => {
+        fetch('/api/products')
+            .then(res => res.json())
+            .then(data => {
+                // Group products by category slug
+                const grouped = {};
+                data.forEach(product => {
+                    // Find category slug by name
+                    const cat = categories.find(c => c.name.toLowerCase() === (product.CategoryName || product.category)?.toLowerCase());
+                    if (cat) {
+                        if (!grouped[cat.slug]) grouped[cat.slug] = [];
+                        grouped[cat.slug].push(product);
+                    }
+                });
+                // For each category, randomize and limit to 10 products
+                Object.keys(grouped).forEach(slug => {
+                    grouped[slug] = grouped[slug]
+                        .sort(() => Math.random() - 0.5)
+                        .slice(0, 10);
+                });
+                setProductsByCategory(grouped);
+            })
+            .catch(() => setProductsByCategory({}));
+    }, []);
 
     // Auto-move carousel every 2.5 seconds
     useEffect(() => {
@@ -158,28 +135,52 @@ const Landing = () => {
                     <h3 className="shopItemsTitle" style={{marginBottom: 0}}>{activeCategory.name} Items</h3>
                     <div className="section-divider"></div>
                 </div>
-                <div className="shopItemsGrid">
-                    {(shopItems[activeCategory.slug] || []).map((item, idx) => {
+                <div className="shopItemsGrid" style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '2rem',
+                    width: '100%',
+                    margin: '0 auto',
+                    minHeight: '520px',
+                    maxWidth: '1200px',
+                }}>
+                    {(productsByCategory[activeCategory.slug] || []).map((item, idx) => {
                         const isHovered = hoveredIdx === idx;
-                        // Use fixed rating and sold count for all products
                         const rating = 4.7;
                         const sold = 320;
-                        // Extract price number
-                        const priceNum = parseInt(item.price.replace('₱', '').replace(',', '').split('/')[0]);
                         return (
                             <div
-                                key={item.name}
-                                className={`product-card ${isHovered ? 'product-card--hovered' : ''}`}
+                                key={item.ProductID || item.name}
+                                className={`product-card${isHovered ? ' product-card--hovered' : ''}`}
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '100%',
+                                    height: '100%',
+                                    boxSizing: 'border-box',
+                                    margin: 0,
+                                }}
                                 onMouseEnter={() => setHoveredIdx(idx)}
                                 onMouseLeave={() => setHoveredIdx(null)}
-                                onClick={() => window.location.href = '/product'}
+                                onClick={() => window.location.href = `/product/${item.ProductID || ''}`}
                             >
-                                <img src={item.image} alt={item.name} className="product-image" />
-                                <div className="product-name">{item.name}</div>
-                                {/* Slide container for info/buttons */}
-                                <div className={`product-info ${isHovered ? 'product-info--hidden' : ''}`}>
-                                    <div className="product-price">₱{priceNum.toLocaleString()}</div>
-                                    <div className="product-rating">
+                                <img
+                                    src={item.Image || item.image}
+                                    alt={item.ProductName || item.name}
+                                    className="product-image"
+                                    style={{
+                                        display: 'block',
+                                        margin: '0 auto',
+                                    }}
+                                />
+                                <div className="product-name" style={{textAlign: 'center', width: '100%'}}>{item.ProductName || item.name}</div>
+                                <div className={`product-info${isHovered ? ' product-info--hidden' : ''}`} style={{width: '100%', textAlign: 'center'}}>
+                                    <div className="product-price">₱{(item.Price || 0).toLocaleString()}</div>
+                                    <div className="product-rating" style={{justifyContent: 'center'}}>
                                         <span className="product-rating-stars">
                                             {'★'.repeat(4)}<span style={{ opacity: 0.5 }}>★</span>
                                             <span className="product-rating-number">{rating}</span>
@@ -187,9 +188,8 @@ const Landing = () => {
                                         <span className="product-sold">{sold} sold</span>
                                     </div>
                                 </div>
-                                {/* Slide up buttons on hover */}
-                                <div className={`product-buttons ${isHovered ? 'product-buttons--visible' : ''}`}>
-                                    <button className="add-to-cart-btn" onClick={e => e.stopPropagation()}>Add to Cart</button>
+                                <div className={`product-buttons${isHovered ? ' product-buttons--visible' : ''}`} style={{width: '100%', textAlign: 'center'}}>
+                                    <button className="add-to-cart-btn" style={{marginBottom: '6px'}} onClick={e => e.stopPropagation()}>Add to Cart</button>
                                     <button className="buy-now-btn" onClick={e => e.stopPropagation()}>Buy Now</button>
                                 </div>
                             </div>
