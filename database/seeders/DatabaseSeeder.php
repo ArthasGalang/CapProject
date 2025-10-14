@@ -8,24 +8,116 @@ use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
+        // Users: diverse names, emails, statuses, profile images
+        $userData = [
+            ['John', 'Doe', 'john.doe@email.com', 'Active', 'https://randomuser.me/api/portraits/men/1.jpg'],
+            ['Jane', 'Smith', 'jane.smith@email.com', 'Busy', 'https://randomuser.me/api/portraits/women/2.jpg'],
+            ['Carlos', 'Reyes', 'carlos.reyes@email.com', 'Offline', 'https://randomuser.me/api/portraits/men/3.jpg'],
+            ['Emily', 'Tan', 'emily.tan@email.com', 'Active', 'https://randomuser.me/api/portraits/women/4.jpg'],
+            ['Ahmed', 'Ali', 'ahmed.ali@email.com', 'Busy', 'https://randomuser.me/api/portraits/men/5.jpg'],
+            ['Sofia', 'Garcia', 'sofia.garcia@email.com', 'Active', 'https://randomuser.me/api/portraits/women/6.jpg'],
+            ['Liam', 'Nguyen', 'liam.nguyen@email.com', 'Offline', 'https://randomuser.me/api/portraits/men/7.jpg'],
+            ['Olivia', 'Kim', 'olivia.kim@email.com', 'Busy', 'https://randomuser.me/api/portraits/women/8.jpg'],
+            ['Noah', 'Patel', 'noah.patel@email.com', 'Active', 'https://randomuser.me/api/portraits/men/9.jpg'],
+            ['Mia', 'Lee', 'mia.lee@email.com', 'Offline', 'https://randomuser.me/api/portraits/women/10.jpg'],
+        ];
         $userIds = [];
-        for ($i = 1; $i <= 10; $i++) {
+        foreach ($userData as $i => $data) {
             $user = \App\Models\User::create([
-                'FirstName' => 'a' . $i,
-                'LastName' => 'b' . $i,
-                'email' => '123@' . $i,
-                'Password' => bcrypt('123' . $i),
-                'ContactNumber' => '123123' . $i,
+                'FirstName' => $data[0],
+                'LastName' => $data[1],
+                'Email' => $data[2],
+                'Password' => bcrypt('password' . ($i+1)),
+                'ContactNumber' => '09' . rand(100000000,999999999),
+                'ProfileImage' => $data[4],
+                'Status' => $data[3],
             ]);
             $userIds[] = $user->UserID;
         }
 
-        // Seed categories
+        // Overwrite login for each user: email: 123@[0..9], password: 12312[0..9]
+        foreach ($userIds as $i => $uid) {
+            \App\Models\User::where('UserID', $uid)->update([
+                'Email' => '123@' . $i,
+                'Password' => bcrypt('12312' . $i),
+            ]);
+        }
+
+        // Addresses: realistic, 1 per user, rest distributed
+        $addressTemplates = [
+            ['123 Main St', 'Central', 'Metro City', 'Metro Province', '1000'],
+            ['456 Oak Ave', 'North', 'Metro City', 'Metro Province', '1001'],
+            ['789 Pine Rd', 'East', 'Metro City', 'Metro Province', '1002'],
+            ['321 Maple St', 'West', 'Metro City', 'Metro Province', '1003'],
+            ['654 Elm St', 'South', 'Metro City', 'Metro Province', '1004'],
+            ['987 Cedar Ave', 'Central', 'Metro City', 'Metro Province', '1005'],
+            ['246 Spruce Rd', 'North', 'Metro City', 'Metro Province', '1006'],
+            ['135 Birch St', 'East', 'Metro City', 'Metro Province', '1007'],
+            ['864 Willow Ave', 'West', 'Metro City', 'Metro Province', '1008'],
+            ['579 Aspen Rd', 'South', 'Metro City', 'Metro Province', '1009'],
+        ];
+        $addressIds = [];
+        for ($i = 0; $i < 15; $i++) {
+            $template = $addressTemplates[$i % 10];
+            $address = \DB::table('addresses')->insertGetId([
+                'UserID' => $userIds[$i % 10],
+                'Street' => $template[0],
+                'Barangay' => $template[1],
+                'Municipality' => $template[2],
+                'Province' => $template[3],
+                'ZipCode' => $template[4],
+            ]);
+            $addressIds[] = $address;
+        }
+        foreach ($userIds as $idx => $uid) {
+            \App\Models\User::where('UserID', $uid)->update(['DefaultAddress' => $addressIds[$idx]]);
+        }
+
+        // Shops: unique names, descriptions, images, verified, physical
+        $shopTemplates = [
+            ['Tech Haven', 'Electronics and gadgets', true, true],
+            ['Book Nook', 'Books and stationery', true, false],
+            ['Fashion Forward', 'Trendy clothing', false, true],
+            ['Home Comforts', 'Furniture and decor', true, true],
+            ['Toy World', 'Toys and games', false, false],
+            ['Fresh Mart', 'Groceries and essentials', true, true],
+            ['Beauty Bliss', 'Beauty and wellness', false, false],
+            ['Sport Spot', 'Sports equipment', true, true],
+            ['Auto Hub', 'Automotive parts', false, true],
+            ['Pet Palace', 'Pet supplies', true, false],
+            // 6 more shops
+            ['Gadget Galaxy', 'Latest tech gadgets', true, false],
+            ['Page Turners', 'Rare and new books', false, true],
+            ['Style Central', 'Urban fashion', true, true],
+            ['Cozy Living', 'Home essentials', false, false],
+            ['Playtime Plus', 'Educational toys', true, true],
+            ['Green Grocer', 'Organic groceries', false, true],
+        ];
+        $shopIds = [];
+        // Distribute shops: user 0 gets 3 shops, rest distributed to other users
+        $shopUserMap = [
+            $userIds[0], $userIds[0], $userIds[0], // user 0 gets 3 shops
+            $userIds[1], $userIds[2], $userIds[3], $userIds[4], $userIds[5], $userIds[6], $userIds[7],
+            $userIds[8], $userIds[9], $userIds[1], $userIds[2], $userIds[3], $userIds[4]
+        ];
+        foreach ($shopTemplates as $i => $shop) {
+            $shopId = \DB::table('shops')->insertGetId([
+                'UserID' => $shopUserMap[$i % count($shopUserMap)],
+                'ShopName' => $shop[0],
+                'ShopDescription' => $shop[1],
+                'LogoImage' => 'https://via.placeholder.com/150?text=' . urlencode($shop[0]),
+                'BackgroundImage' => 'https://via.placeholder.com/300x100?text=' . urlencode($shop[0]) . '+BG',
+                'Address' => $addressTemplates[$i % 10][0],
+                'BusinessPermit' => 'Permit-' . ($i+1),
+                'isVerified' => $shop[2],
+                'hasPhysical' => $shop[3],
+            ]);
+            $shopIds[] = $shopId;
+        }
+
+        // Categories: unchanged
         $categoryNames = [
             'Electronics', 'Books', 'Clothing', 'Home', 'Toys', 'Groceries', 'Beauty', 'Sports', 'Automotive', 'Pets', 'Others'
         ];
@@ -39,213 +131,197 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // Seed products: each user 2-10 products, each category 5-15 products
-        $productId = 4000000;
-        $categoryProductCount = array_fill(0, count($categoryIds), 0);
-        $categoryMin = 5;
-        $categoryMax = 15;
-
-        // Realistic products for each category
-        $productsByCategory = [
-            'Electronics' => [
-                ['name' => 'Smart TV', 'desc' => '4K Ultra HD Smart TV', 'price' => 15999, 'stock' => 7, 'image' => 'https://via.placeholder.com/150?text=Smart+TV'],
-                ['name' => 'Portable Speaker', 'desc' => 'Bluetooth portable speaker', 'price' => 1499, 'stock' => 35, 'image' => 'https://via.placeholder.com/150?text=Speaker'],
-                ['name' => 'Drone', 'desc' => 'Quadcopter drone with camera', 'price' => 6999, 'stock' => 10, 'image' => 'https://via.placeholder.com/150?text=Drone'],
-                ['name' => 'VR Headset', 'desc' => 'Virtual reality headset', 'price' => 4999, 'stock' => 12, 'image' => 'https://via.placeholder.com/150?text=VR+Headset'],
-                ['name' => 'USB Flash Drive', 'desc' => '128GB USB 3.0 flash drive', 'price' => 499, 'stock' => 80, 'image' => 'https://via.placeholder.com/150?text=USB+Drive'],
-                ['name' => 'Smartphone', 'desc' => 'Latest model smartphone', 'price' => 7999, 'stock' => 25, 'image' => 'https://via.placeholder.com/150?text=Smartphone'],
-                ['name' => 'Laptop', 'desc' => 'High performance laptop', 'price' => 12999, 'stock' => 10, 'image' => 'https://via.placeholder.com/150?text=Laptop'],
-                ['name' => 'Bluetooth Headphones', 'desc' => 'Wireless headphones', 'price' => 1999, 'stock' => 50, 'image' => 'https://via.placeholder.com/150?text=Headphones'],
-                ['name' => 'Smartwatch', 'desc' => 'Fitness tracking smartwatch', 'price' => 2999, 'stock' => 30, 'image' => 'https://via.placeholder.com/150?text=Smartwatch'],
-                ['name' => 'Tablet', 'desc' => '10-inch display tablet', 'price' => 4999, 'stock' => 20, 'image' => 'https://via.placeholder.com/150?text=Tablet'],
-                ['name' => 'Action Camera', 'desc' => 'Waterproof action camera', 'price' => 3999, 'stock' => 15, 'image' => 'https://via.placeholder.com/150?text=Camera'],
-                ['name' => 'Wireless Mouse', 'desc' => 'Ergonomic wireless mouse', 'price' => 899, 'stock' => 40, 'image' => 'https://via.placeholder.com/150?text=Mouse'],
-                ['name' => 'Gaming Console', 'desc' => 'Next-gen gaming console', 'price' => 15999, 'stock' => 8, 'image' => 'https://via.placeholder.com/150?text=Console'],
-                ['name' => 'Power Bank', 'desc' => '10000mAh power bank', 'price' => 999, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Power+Bank'],
-                ['name' => 'Monitor', 'desc' => '24-inch LED monitor', 'price' => 4999, 'stock' => 12, 'image' => 'https://via.placeholder.com/150?text=Monitor'],
-            ],
-            'Books' => [
-                ['name' => 'Historical Fiction', 'desc' => 'Novel set in ancient times', 'price' => 499, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Historical'],
-                ['name' => 'Poetry Collection', 'desc' => 'Modern poetry anthology', 'price' => 299, 'stock' => 70, 'image' => 'https://via.placeholder.com/150?text=Poetry'],
-                ['name' => 'Travel Guide', 'desc' => 'Guide to world travel', 'price' => 599, 'stock' => 40, 'image' => 'https://via.placeholder.com/150?text=Travel'],
-                ['name' => 'Comic Book', 'desc' => 'Superhero comic book', 'price' => 199, 'stock' => 90, 'image' => 'https://via.placeholder.com/150?text=Comic'],
-                ['name' => 'Business Manual', 'desc' => 'Entrepreneurship manual', 'price' => 699, 'stock' => 30, 'image' => 'https://via.placeholder.com/150?text=Business'],
-                ['name' => 'Mystery Novel', 'desc' => 'A thrilling mystery novel', 'price' => 499, 'stock' => 100, 'image' => 'https://via.placeholder.com/150?text=Book'],
-                ['name' => 'Science Textbook', 'desc' => 'Comprehensive science textbook', 'price' => 899, 'stock' => 40, 'image' => 'https://via.placeholder.com/150?text=Textbook'],
-                ['name' => 'Cookbook', 'desc' => 'Delicious recipes cookbook', 'price' => 599, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Cookbook'],
-                ['name' => 'Children’s Storybook', 'desc' => 'Illustrated children’s storybook', 'price' => 299, 'stock' => 80, 'image' => 'https://via.placeholder.com/150?text=Storybook'],
-                ['name' => 'Self-Help Guide', 'desc' => 'Guide to personal growth', 'price' => 399, 'stock' => 70, 'image' => 'https://via.placeholder.com/150?text=Self-Help'],
-                ['name' => 'Romance Novel', 'desc' => 'Heartwarming romance novel', 'price' => 399, 'stock' => 90, 'image' => 'https://via.placeholder.com/150?text=Romance'],
-                ['name' => 'Fantasy Epic', 'desc' => 'Epic fantasy adventure', 'price' => 599, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Fantasy'],
-                ['name' => 'Biography', 'desc' => 'Inspiring biography', 'price' => 499, 'stock' => 50, 'image' => 'https://via.placeholder.com/150?text=Biography'],
-            ],
-            'Clothing' => [
-                ['name' => 'Polo Shirt', 'desc' => 'Classic polo shirt', 'price' => 499, 'stock' => 90, 'image' => 'https://via.placeholder.com/150?text=Polo'],
-                ['name' => 'Shorts', 'desc' => 'Casual shorts', 'price' => 399, 'stock' => 110, 'image' => 'https://via.placeholder.com/150?text=Shorts'],
-                ['name' => 'Blouse', 'desc' => 'Women’s blouse', 'price' => 599, 'stock' => 70, 'image' => 'https://via.placeholder.com/150?text=Blouse'],
-                ['name' => 'Raincoat', 'desc' => 'Waterproof raincoat', 'price' => 899, 'stock' => 40, 'image' => 'https://via.placeholder.com/150?text=Raincoat'],
-                ['name' => 'Gloves', 'desc' => 'Winter gloves', 'price' => 299, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Gloves'],
-                ['name' => 'Men’s T-Shirt', 'desc' => 'Cotton t-shirt', 'price' => 299, 'stock' => 200, 'image' => 'https://via.placeholder.com/150?text=T-Shirt'],
-                ['name' => 'Women’s Dress', 'desc' => 'Summer dress', 'price' => 799, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Dress'],
-                ['name' => 'Jeans', 'desc' => 'Denim jeans', 'price' => 999, 'stock' => 80, 'image' => 'https://via.placeholder.com/150?text=Jeans'],
-                ['name' => 'Jacket', 'desc' => 'Warm winter jacket', 'price' => 1499, 'stock' => 30, 'image' => 'https://via.placeholder.com/150?text=Jacket'],
-                ['name' => 'Sneakers', 'desc' => 'Comfortable sneakers', 'price' => 1299, 'stock' => 50, 'image' => 'https://via.placeholder.com/150?text=Sneakers'],
-                ['name' => 'Socks', 'desc' => 'Pack of 5 socks', 'price' => 199, 'stock' => 120, 'image' => 'https://via.placeholder.com/150?text=Socks'],
-                ['name' => 'Cap', 'desc' => 'Adjustable baseball cap', 'price' => 299, 'stock' => 70, 'image' => 'https://via.placeholder.com/150?text=Cap'],
-                ['name' => 'Scarf', 'desc' => 'Woolen scarf', 'price' => 399, 'stock' => 40, 'image' => 'https://via.placeholder.com/150?text=Scarf'],
-                ['name' => 'Belt', 'desc' => 'Leather belt', 'price' => 499, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Belt'],
-            ],
-            'Home' => [
-                ['name' => 'Wall Clock', 'desc' => 'Modern wall clock', 'price' => 399, 'stock' => 30, 'image' => 'https://via.placeholder.com/150?text=Clock'],
-                ['name' => 'Rug', 'desc' => 'Soft area rug', 'price' => 999, 'stock' => 20, 'image' => 'https://via.placeholder.com/150?text=Rug'],
-                ['name' => 'Bookshelf', 'desc' => 'Wooden bookshelf', 'price' => 2499, 'stock' => 10, 'image' => 'https://via.placeholder.com/150?text=Bookshelf'],
-                ['name' => 'Mirror', 'desc' => 'Decorative wall mirror', 'price' => 799, 'stock' => 25, 'image' => 'https://via.placeholder.com/150?text=Mirror'],
-                ['name' => 'Laundry Basket', 'desc' => 'Plastic laundry basket', 'price' => 299, 'stock' => 50, 'image' => 'https://via.placeholder.com/150?text=Laundry'],
-                ['name' => 'Sofa', 'desc' => '3-seater sofa', 'price' => 7999, 'stock' => 10, 'image' => 'https://via.placeholder.com/150?text=Sofa'],
-                ['name' => 'Dining Table', 'desc' => 'Wooden dining table', 'price' => 5999, 'stock' => 8, 'image' => 'https://via.placeholder.com/150?text=Table'],
-                ['name' => 'Lamp', 'desc' => 'LED desk lamp', 'price' => 499, 'stock' => 40, 'image' => 'https://via.placeholder.com/150?text=Lamp'],
-                ['name' => 'Curtains', 'desc' => 'Window curtains', 'price' => 799, 'stock' => 30, 'image' => 'https://via.placeholder.com/150?text=Curtains'],
-                ['name' => 'Cookware Set', 'desc' => 'Non-stick cookware set', 'price' => 1999, 'stock' => 20, 'image' => 'https://via.placeholder.com/150?text=Cookware'],
-            ],
-            'Toys' => [
-                ['name' => 'Yo-Yo', 'desc' => 'Classic yo-yo toy', 'price' => 99, 'stock' => 120, 'image' => 'https://via.placeholder.com/150?text=Yo-Yo'],
-                ['name' => 'Kite', 'desc' => 'Colorful flying kite', 'price' => 199, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Kite'],
-                ['name' => 'Toy Gun', 'desc' => 'Plastic toy gun', 'price' => 149, 'stock' => 80, 'image' => 'https://via.placeholder.com/150?text=Toy+Gun'],
-                ['name' => 'Jump Rope', 'desc' => 'Fitness jump rope', 'price' => 129, 'stock' => 90, 'image' => 'https://via.placeholder.com/150?text=Jump+Rope'],
-                ['name' => 'Bubble Maker', 'desc' => 'Bubble making toy', 'price' => 79, 'stock' => 100, 'image' => 'https://via.placeholder.com/150?text=Bubble'],
-                ['name' => 'Building Blocks', 'desc' => 'Colorful building blocks', 'price' => 399, 'stock' => 100, 'image' => 'https://via.placeholder.com/150?text=Blocks'],
-                ['name' => 'Doll', 'desc' => 'Fashion doll', 'price' => 499, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Doll'],
-                ['name' => 'RC Car', 'desc' => 'Remote control car', 'price' => 999, 'stock' => 40, 'image' => 'https://via.placeholder.com/150?text=RC+Car'],
-                ['name' => 'Puzzle', 'desc' => '500-piece puzzle', 'price' => 299, 'stock' => 80, 'image' => 'https://via.placeholder.com/150?text=Puzzle'],
-                ['name' => 'Plush Toy', 'desc' => 'Soft plush toy', 'price' => 399, 'stock' => 70, 'image' => 'https://via.placeholder.com/150?text=Plush'],
-                ['name' => 'Toy Train', 'desc' => 'Battery operated toy train', 'price' => 599, 'stock' => 30, 'image' => 'https://via.placeholder.com/150?text=Train'],
-                ['name' => 'Board Game', 'desc' => 'Family board game', 'price' => 799, 'stock' => 25, 'image' => 'https://via.placeholder.com/150?text=Board+Game'],
-                ['name' => 'Action Figure', 'desc' => 'Superhero action figure', 'price' => 499, 'stock' => 50, 'image' => 'https://via.placeholder.com/150?text=Action+Figure'],
-            ],
-            'Groceries' => [
-                ['name' => 'Bread', 'desc' => 'Freshly baked bread', 'price' => 49, 'stock' => 80, 'image' => 'https://via.placeholder.com/150?text=Bread'],
-                ['name' => 'Butter', 'desc' => 'Creamy butter', 'price' => 89, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Butter'],
-                ['name' => 'Cheese', 'desc' => 'Cheddar cheese block', 'price' => 199, 'stock' => 40, 'image' => 'https://via.placeholder.com/150?text=Cheese'],
-                ['name' => 'Orange Juice', 'desc' => '1L orange juice', 'price' => 99, 'stock' => 70, 'image' => 'https://via.placeholder.com/150?text=Juice'],
-                ['name' => 'Bananas', 'desc' => '1kg bananas', 'price' => 59, 'stock' => 100, 'image' => 'https://via.placeholder.com/150?text=Bananas'],
-                ['name' => 'Rice', 'desc' => '5kg bag of rice', 'price' => 299, 'stock' => 100, 'image' => 'https://via.placeholder.com/150?text=Rice'],
-                ['name' => 'Cooking Oil', 'desc' => '1L bottle of cooking oil', 'price' => 149, 'stock' => 80, 'image' => 'https://via.placeholder.com/150?text=Oil'],
-                ['name' => 'Canned Tuna', 'desc' => 'Canned tuna in oil', 'price' => 59, 'stock' => 200, 'image' => 'https://via.placeholder.com/150?text=Tuna'],
-                ['name' => 'Instant Noodles', 'desc' => 'Pack of instant noodles', 'price' => 12, 'stock' => 300, 'image' => 'https://via.placeholder.com/150?text=Noodles'],
-                ['name' => 'Coffee', 'desc' => 'Ground coffee', 'price' => 199, 'stock' => 50, 'image' => 'https://via.placeholder.com/150?text=Coffee'],
-                ['name' => 'Sugar', 'desc' => '1kg pack of sugar', 'price' => 89, 'stock' => 120, 'image' => 'https://via.placeholder.com/150?text=Sugar'],
-                ['name' => 'Salt', 'desc' => '500g pack of salt', 'price' => 29, 'stock' => 150, 'image' => 'https://via.placeholder.com/150?text=Salt'],
-                ['name' => 'Eggs', 'desc' => 'Tray of 30 eggs', 'price' => 199, 'stock' => 80, 'image' => 'https://via.placeholder.com/150?text=Eggs'],
-                ['name' => 'Milk', 'desc' => '1L fresh milk', 'price' => 99, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Milk'],
-            ],
-            'Beauty' => [
-                ['name' => 'Body Lotion', 'desc' => 'Hydrating body lotion', 'price' => 299, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Lotion'],
-                ['name' => 'Hair Gel', 'desc' => 'Strong hold hair gel', 'price' => 199, 'stock' => 80, 'image' => 'https://via.placeholder.com/150?text=Gel'],
-                ['name' => 'Face Wash', 'desc' => 'Gentle face wash', 'price' => 249, 'stock' => 40, 'image' => 'https://via.placeholder.com/150?text=Face+Wash'],
-                ['name' => 'Sunscreen', 'desc' => 'SPF 50 sunscreen', 'price' => 399, 'stock' => 30, 'image' => 'https://via.placeholder.com/150?text=Sunscreen'],
-                ['name' => 'Makeup Remover', 'desc' => 'Oil-free makeup remover', 'price' => 199, 'stock' => 100, 'image' => 'https://via.placeholder.com/150?text=Remover'],
-                ['name' => 'Lipstick', 'desc' => 'Matte lipstick', 'price' => 299, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Lipstick'],
-                ['name' => 'Shampoo', 'desc' => 'Herbal shampoo', 'price' => 199, 'stock' => 80, 'image' => 'https://via.placeholder.com/150?text=Shampoo'],
-                ['name' => 'Face Cream', 'desc' => 'Moisturizing face cream', 'price' => 399, 'stock' => 40, 'image' => 'https://via.placeholder.com/150?text=Cream'],
-                ['name' => 'Perfume', 'desc' => 'Floral perfume', 'price' => 799, 'stock' => 30, 'image' => 'https://via.placeholder.com/150?text=Perfume'],
-                ['name' => 'Nail Polish', 'desc' => 'Glossy nail polish', 'price' => 149, 'stock' => 100, 'image' => 'https://via.placeholder.com/150?text=Nail+Polish'],
-            ],
-            'Sports' => [
-                ['name' => 'Jump Rope', 'desc' => 'Speed jump rope', 'price' => 149, 'stock' => 80, 'image' => 'https://via.placeholder.com/150?text=Jump+Rope'],
-                ['name' => 'Golf Balls', 'desc' => 'Pack of 12 golf balls', 'price' => 399, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Golf+Balls'],
-                ['name' => 'Swim Goggles', 'desc' => 'Anti-fog swim goggles', 'price' => 299, 'stock' => 40, 'image' => 'https://via.placeholder.com/150?text=Goggles'],
-                ['name' => 'Badminton Set', 'desc' => '2 rackets and shuttlecocks', 'price' => 599, 'stock' => 30, 'image' => 'https://via.placeholder.com/150?text=Badminton'],
-                ['name' => 'Resistance Bands', 'desc' => 'Set of resistance bands', 'price' => 499, 'stock' => 100, 'image' => 'https://via.placeholder.com/150?text=Bands'],
-                ['name' => 'Basketball', 'desc' => 'Official size basketball', 'price' => 599, 'stock' => 40, 'image' => 'https://via.placeholder.com/150?text=Basketball'],
-                ['name' => 'Tennis Racket', 'desc' => 'Lightweight tennis racket', 'price' => 999, 'stock' => 20, 'image' => 'https://via.placeholder.com/150?text=Racket'],
-                ['name' => 'Yoga Mat', 'desc' => 'Non-slip yoga mat', 'price' => 399, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Yoga+Mat'],
-                ['name' => 'Football', 'desc' => 'Durable football', 'price' => 499, 'stock' => 50, 'image' => 'https://via.placeholder.com/150?text=Football'],
-                ['name' => 'Water Bottle', 'desc' => 'Insulated water bottle', 'price' => 299, 'stock' => 100, 'image' => 'https://via.placeholder.com/150?text=Bottle'],
-            ],
-            'Automotive' => [
-                ['name' => 'Windshield Wiper', 'desc' => 'Universal wiper blade', 'price' => 299, 'stock' => 40, 'image' => 'https://via.placeholder.com/150?text=Wiper'],
-                ['name' => 'Car Mat', 'desc' => 'Set of 4 car mats', 'price' => 799, 'stock' => 30, 'image' => 'https://via.placeholder.com/150?text=Car+Mat'],
-                ['name' => 'Jumper Cables', 'desc' => 'Heavy duty jumper cables', 'price' => 599, 'stock' => 20, 'image' => 'https://via.placeholder.com/150?text=Jumper'],
-                ['name' => 'Steering Wheel Cover', 'desc' => 'Leather steering wheel cover', 'price' => 499, 'stock' => 25, 'image' => 'https://via.placeholder.com/150?text=Steering'],
-                ['name' => 'Car Vacuum', 'desc' => 'Portable car vacuum cleaner', 'price' => 999, 'stock' => 15, 'image' => 'https://via.placeholder.com/150?text=Vacuum'],
-                ['name' => 'Car Wax', 'desc' => 'Premium car wax', 'price' => 399, 'stock' => 30, 'image' => 'https://via.placeholder.com/150?text=Wax'],
-                ['name' => 'Motor Oil', 'desc' => 'Synthetic motor oil', 'price' => 799, 'stock' => 40, 'image' => 'https://via.placeholder.com/150?text=Oil'],
-                ['name' => 'Air Freshener', 'desc' => 'Car air freshener', 'price' => 99, 'stock' => 100, 'image' => 'https://via.placeholder.com/150?text=Freshener'],
-                ['name' => 'Tire Inflator', 'desc' => 'Portable tire inflator', 'price' => 1499, 'stock' => 15, 'image' => 'https://via.placeholder.com/150?text=Inflator'],
-                ['name' => 'Car Cover', 'desc' => 'Waterproof car cover', 'price' => 1999, 'stock' => 10, 'image' => 'https://via.placeholder.com/150?text=Cover'],
-            ],
-            'Pets' => [
-                ['name' => 'Dog Leash', 'desc' => 'Adjustable dog leash', 'price' => 199, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Leash'],
-                ['name' => 'Cat Toy', 'desc' => 'Interactive cat toy', 'price' => 99, 'stock' => 80, 'image' => 'https://via.placeholder.com/150?text=Cat+Toy'],
-                ['name' => 'Pet Carrier', 'desc' => 'Soft pet carrier bag', 'price' => 599, 'stock' => 20, 'image' => 'https://via.placeholder.com/150?text=Carrier'],
-                ['name' => 'Dog Collar', 'desc' => 'Reflective dog collar', 'price' => 149, 'stock' => 40, 'image' => 'https://via.placeholder.com/150?text=Collar'],
-                ['name' => 'Fish Food', 'desc' => 'Tropical fish food', 'price' => 49, 'stock' => 100, 'image' => 'https://via.placeholder.com/150?text=Fish+Food'],
-                ['name' => 'Dog Food', 'desc' => 'Premium dog food', 'price' => 499, 'stock' => 80, 'image' => 'https://via.placeholder.com/150?text=Dog+Food'],
-                ['name' => 'Cat Litter', 'desc' => 'Clumping cat litter', 'price' => 299, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Cat+Litter'],
-                ['name' => 'Bird Cage', 'desc' => 'Spacious bird cage', 'price' => 999, 'stock' => 20, 'image' => 'https://via.placeholder.com/150?text=Bird+Cage'],
-                ['name' => 'Fish Tank', 'desc' => 'Glass fish tank', 'price' => 1499, 'stock' => 10, 'image' => 'https://via.placeholder.com/150?text=Fish+Tank'],
-                ['name' => 'Pet Shampoo', 'desc' => 'Gentle pet shampoo', 'price' => 199, 'stock' => 50, 'image' => 'https://via.placeholder.com/150?text=Pet+Shampoo'],
-            ],
-            'Others' => [
-                ['name' => 'Keychain', 'desc' => 'Metal keychain', 'price' => 49, 'stock' => 120, 'image' => 'https://via.placeholder.com/150?text=Keychain'],
-                ['name' => 'Sticky Notes', 'desc' => 'Pack of sticky notes', 'price' => 29, 'stock' => 200, 'image' => 'https://via.placeholder.com/150?text=Sticky+Notes'],
-                ['name' => 'Pen', 'desc' => 'Ballpoint pen', 'price' => 19, 'stock' => 300, 'image' => 'https://via.placeholder.com/150?text=Pen'],
-                ['name' => 'Tape', 'desc' => 'Roll of adhesive tape', 'price' => 39, 'stock' => 80, 'image' => 'https://via.placeholder.com/150?text=Tape'],
-                ['name' => 'Magnifier', 'desc' => 'Handheld magnifier', 'price' => 99, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Magnifier'],
-                ['name' => 'Gift Card', 'desc' => 'Store gift card', 'price' => 500, 'stock' => 100, 'image' => 'https://via.placeholder.com/150?text=Gift+Card'],
-                ['name' => 'Umbrella', 'desc' => 'Foldable umbrella', 'price' => 199, 'stock' => 60, 'image' => 'https://via.placeholder.com/150?text=Umbrella'],
-                ['name' => 'Reusable Bag', 'desc' => 'Eco-friendly reusable bag', 'price' => 99, 'stock' => 200, 'image' => 'https://via.placeholder.com/150?text=Bag'],
-                ['name' => 'Notebook', 'desc' => 'Spiral notebook', 'price' => 49, 'stock' => 300, 'image' => 'https://via.placeholder.com/150?text=Notebook'],
-                ['name' => 'Flashlight', 'desc' => 'LED flashlight', 'price' => 299, 'stock' => 80, 'image' => 'https://via.placeholder.com/150?text=Flashlight'],
-            ],
+        // Products: specific, at least 150, distributed randomly to each shop and their category
+        $productTemplates = [
+            // Electronics
+            ['Smartphone', 'Latest model smartphone', 'Electronics'],
+            ['Laptop', 'High performance laptop', 'Electronics'],
+            ['Bluetooth Headphones', 'Wireless headphones', 'Electronics'],
+            ['Smartwatch', 'Fitness tracking smartwatch', 'Electronics'],
+            ['Tablet', '10-inch display tablet', 'Electronics'],
+            ['Action Camera', 'Waterproof action camera', 'Electronics'],
+            ['Gaming Console', 'Next-gen gaming console', 'Electronics'],
+            ['Power Bank', '10000mAh power bank', 'Electronics'],
+            ['Monitor', '24-inch LED monitor', 'Electronics'],
+            ['VR Headset', 'Virtual reality headset', 'Electronics'],
+            // Books
+            ['Historical Fiction', 'Novel set in ancient times', 'Books'],
+            ['Poetry Collection', 'Modern poetry anthology', 'Books'],
+            ['Travel Guide', 'Guide to world travel', 'Books'],
+            ['Comic Book', 'Superhero comic book', 'Books'],
+            ['Business Manual', 'Entrepreneurship manual', 'Books'],
+            ['Mystery Novel', 'A thrilling mystery novel', 'Books'],
+            ['Science Textbook', 'Comprehensive science textbook', 'Books'],
+            ['Cookbook', 'Delicious recipes cookbook', 'Books'],
+            ['Children’s Storybook', 'Illustrated children’s storybook', 'Books'],
+            ['Self-Help Guide', 'Guide to personal growth', 'Books'],
+            // Clothing
+            ['Polo Shirt', 'Classic polo shirt', 'Clothing'],
+            ['Shorts', 'Casual shorts', 'Clothing'],
+            ['Blouse', 'Women’s blouse', 'Clothing'],
+            ['Raincoat', 'Waterproof raincoat', 'Clothing'],
+            ['Gloves', 'Winter gloves', 'Clothing'],
+            ['Men’s T-Shirt', 'Cotton t-shirt', 'Clothing'],
+            ['Women’s Dress', 'Summer dress', 'Clothing'],
+            ['Jeans', 'Denim jeans', 'Clothing'],
+            ['Jacket', 'Warm winter jacket', 'Clothing'],
+            ['Sneakers', 'Comfortable sneakers', 'Clothing'],
+            // Home
+            ['Wall Clock', 'Modern wall clock', 'Home'],
+            ['Rug', 'Soft area rug', 'Home'],
+            ['Bookshelf', 'Wooden bookshelf', 'Home'],
+            ['Mirror', 'Decorative wall mirror', 'Home'],
+            ['Laundry Basket', 'Plastic laundry basket', 'Home'],
+            ['Sofa', '3-seater sofa', 'Home'],
+            ['Dining Table', 'Wooden dining table', 'Home'],
+            ['Lamp', 'LED desk lamp', 'Home'],
+            ['Curtains', 'Window curtains', 'Home'],
+            ['Cookware Set', 'Non-stick cookware set', 'Home'],
+            // Toys
+            ['Yo-Yo', 'Classic yo-yo toy', 'Toys'],
+            ['Kite', 'Colorful flying kite', 'Toys'],
+            ['Toy Gun', 'Plastic toy gun', 'Toys'],
+            ['Jump Rope', 'Fitness jump rope', 'Toys'],
+            ['Bubble Maker', 'Bubble making toy', 'Toys'],
+            ['Building Blocks', 'Colorful building blocks', 'Toys'],
+            ['Doll', 'Fashion doll', 'Toys'],
+            ['RC Car', 'Remote control car', 'Toys'],
+            ['Puzzle', '500-piece puzzle', 'Toys'],
+            ['Plush Toy', 'Soft plush toy', 'Toys'],
+            // Groceries
+            ['Rice', 'Premium white rice', 'Groceries'],
+            ['Eggs', 'Fresh farm eggs', 'Groceries'],
+            ['Milk', 'Organic cow milk', 'Groceries'],
+            ['Bread', 'Whole wheat bread', 'Groceries'],
+            ['Chicken', 'Free-range chicken', 'Groceries'],
+            ['Apples', 'Red apples', 'Groceries'],
+            ['Bananas', 'Sweet bananas', 'Groceries'],
+            ['Carrots', 'Fresh carrots', 'Groceries'],
+            ['Potatoes', 'Organic potatoes', 'Groceries'],
+            ['Tomatoes', 'Juicy tomatoes', 'Groceries'],
+            // Beauty
+            ['Shampoo', 'Herbal shampoo', 'Beauty'],
+            ['Conditioner', 'Moisturizing conditioner', 'Beauty'],
+            ['Face Cream', 'Anti-aging face cream', 'Beauty'],
+            ['Lipstick', 'Long-lasting lipstick', 'Beauty'],
+            ['Perfume', 'Floral perfume', 'Beauty'],
+            ['Body Lotion', 'Hydrating body lotion', 'Beauty'],
+            ['Sunscreen', 'SPF 50 sunscreen', 'Beauty'],
+            ['Mascara', 'Waterproof mascara', 'Beauty'],
+            ['Foundation', 'Liquid foundation', 'Beauty'],
+            ['Blush', 'Rosy blush', 'Beauty'],
+            // Sports
+            ['Basketball', 'Official size basketball', 'Sports'],
+            ['Soccer Ball', 'Professional soccer ball', 'Sports'],
+            ['Tennis Racket', 'Lightweight tennis racket', 'Sports'],
+            ['Yoga Mat', 'Non-slip yoga mat', 'Sports'],
+            ['Dumbbells', 'Adjustable dumbbells', 'Sports'],
+            ['Jump Rope', 'Speed jump rope', 'Sports'],
+            ['Golf Clubs', 'Set of golf clubs', 'Sports'],
+            ['Swim Goggles', 'Anti-fog swim goggles', 'Sports'],
+            ['Running Shoes', 'Breathable running shoes', 'Sports'],
+            ['Cycling Helmet', 'Safety cycling helmet', 'Sports'],
+            // Automotive
+            ['Car Battery', 'Long-life car battery', 'Automotive'],
+            ['Tire', 'All-season tire', 'Automotive'],
+            ['Motor Oil', 'Synthetic motor oil', 'Automotive'],
+            ['Wiper Blades', 'Durable wiper blades', 'Automotive'],
+            ['Spark Plugs', 'High-performance spark plugs', 'Automotive'],
+            ['Brake Pads', 'Ceramic brake pads', 'Automotive'],
+            ['Air Filter', 'Premium air filter', 'Automotive'],
+            ['Headlights', 'LED headlights', 'Automotive'],
+            ['Car Wax', 'Glossy car wax', 'Automotive'],
+            ['Floor Mats', 'All-weather floor mats', 'Automotive'],
+            // Pets
+            ['Dog Food', 'Nutritious dog food', 'Pets'],
+            ['Cat Food', 'Grain-free cat food', 'Pets'],
+            ['Bird Seed', 'Vitamin-rich bird seed', 'Pets'],
+            ['Fish Tank', 'Glass fish tank', 'Pets'],
+            ['Pet Shampoo', 'Gentle pet shampoo', 'Pets'],
+            ['Dog Leash', 'Durable dog leash', 'Pets'],
+            ['Cat Litter', 'Clumping cat litter', 'Pets'],
+            ['Pet Carrier', 'Portable pet carrier', 'Pets'],
+            ['Chew Toy', 'Safe chew toy', 'Pets'],
+            ['Pet Bed', 'Comfortable pet bed', 'Pets'],
+            // Others
+            ['Umbrella', 'Windproof umbrella', 'Others'],
+            ['Flashlight', 'Rechargeable flashlight', 'Others'],
+            ['Notebook', 'Spiral notebook', 'Others'],
+            ['Water Bottle', 'Insulated water bottle', 'Others'],
+            ['Backpack', 'Multi-compartment backpack', 'Others'],
+            ['Pen Set', 'Luxury pen set', 'Others'],
+            ['Desk Organizer', 'Adjustable desk organizer', 'Others'],
+            ['Travel Pillow', 'Memory foam travel pillow', 'Others'],
+            ['Alarm Clock', 'Digital alarm clock', 'Others'],
+            ['Keychain', 'Custom keychain', 'Others'],
         ];
+        $productIds = [];
+        for ($i = 1; $i <= 150; $i++) {
+            $template = $productTemplates[rand(0, count($productTemplates)-1)];
+            $shopIdx = rand(0, count($shopIds)-1);
+            $catIdx = array_search($template[2], $categoryNames);
+            $productName = $template[0] . ' ' . $i;
+            $desc = $template[1] . ' (Item #' . $i . ')';
+            $price = rand(100, 10000);
+            $stock = rand(1, 200);
+            $tags = [$template[2], 'sale', 'popular'];
+            $attributes = ['color' => ['red','blue','green'][rand(0,2)], 'size' => ['S','M','L'][rand(0,2)]];
+            $images = [
+                'https://via.placeholder.com/150?text=' . urlencode($productName),
+                'https://via.placeholder.com/150?text=' . urlencode($productName) . '+2'
+            ];
+            $productId = \DB::table('products')->insertGetId([
+                'ShopID' => $shopIds[$shopIdx],
+                'CategoryID' => $categoryIds[$catIdx],
+                'SKU' => 'SKU-' . $i,
+                'ProductName' => $productName,
+                'Description' => $desc,
+                'Price' => $price,
+                'Stock' => $stock,
+                'Image' => json_encode($images),
+                'AdditionalImages' => json_encode([$images[1]]),
+                'SoldAmount' => rand(0, $stock),
+                'Status' => ['Active','OutOfStock','OffSale'][rand(0,2)],
+                'isActive' => true,
+                'Attributes' => json_encode($attributes),
+                'Discount' => rand(0, 500),
+                'isFeatured' => (bool)rand(0,1),
+                'Tags' => json_encode($tags),
+                'BoughtBy' => json_encode(array_rand($userIds, rand(1,5))),
+                'PublishedAt' => now()->subDays(rand(0,365)),
+            ]);
+            $productIds[] = $productId;
+        }
 
-        $productId = 4000000;
-        foreach ($categoryNames as $catIdx => $catName) {
-            $catId = $categoryIds[$catIdx];
-            $products = $productsByCategory[$catName];
-            foreach ($products as $prod) {
-                $userId = $userIds[array_rand($userIds)];
-                $productId++;
-                \DB::table('products')->insert([
-                    'ProductID' => $productId,
-                    'UserID' => $userId,
-                    'CategoryID' => $catId,
-                    'SKU' => 'SKU' . $productId,
-                    'ProductName' => $prod['name'],
-                    'Description' => $prod['desc'],
-                    'Price' => $prod['price'],
-                    'Stock' => $prod['stock'],
-                    'Image' => $prod['image'],
-                    'isActive' => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+        // Reviews: realistic comments, ratings, dates
+        $reviewIds = [];
+        foreach ($productIds as $pid) {
+            $numReviews = rand(0,5);
+            for ($r = 0; $r < $numReviews; $r++) {
+                $review = \DB::table('reviews')->insertGetId([
+                    'UserID' => $userIds[rand(0,9)],
+                    'ProductID' => $pid,
+                    'Rating' => rand(1,5),
+                    'Comment' => 'User ' . ($r+1) . ' says: ' . ['Great product!','Not bad.','Could be better.','Excellent value.','Would buy again.'][rand(0,4)],
+                    'ReviewDate' => now()->subDays(rand(0,365)),
                 ]);
+                $reviewIds[] = $review;
             }
         }
 
-        // Ensure each user has at least 2 products
-        foreach ($userIds as $userId) {
-            $userProductCount = \DB::table('products')->where('UserID', $userId)->count();
-            $toAdd = max(0, 2 - $userProductCount);
-            for ($j = 0; $j < $toAdd; $j++) {
-                $catId = $categoryIds[array_rand($categoryIds)];
-                $productId++;
-                $stock = rand(1, 100);
-                $price = rand(10, 9999) * (1 / ($stock / 100 + 1));
-                \DB::table('products')->insert([
-                    'ProductID' => $productId,
-                    'UserID' => $userId,
-                    'CategoryID' => $catId,
-                    'SKU' => 'SKU' . $productId,
-                    'ProductName' => 'Product' . $productId,
-                    'Description' => 'Description for Product ' . $productId,
-                    'Price' => round($price, 2),
-                    'Stock' => $stock,
-                    'Image' => 'https://via.placeholder.com/150',
-                    'isActive' => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+        // Replies: realistic comments, likes
+        foreach ($reviewIds as $rid) {
+            $numReplies = rand(0,2);
+            for ($rp = 0; $rp < $numReplies; $rp++) {
+                $numLikes = rand(0,3);
+                $likedBy = $numLikes ? array_rand($userIds, $numLikes) : [];
+                \DB::table('replies')->insert([
+                    'UserID' => $userIds[rand(0,9)],
+                    'ReviewID' => $rid,
+                    'Comment' => ['Thanks for your feedback!','We appreciate your review.','Let us know if you need help.'][rand(0,2)],  
+                    'LikedBy' => json_encode($likedBy),
+                    'created_at' => now()->subDays(rand(0,365)),
+                    'updated_at' => now()->subDays(rand(0,365)),
                 ]);
             }
         }

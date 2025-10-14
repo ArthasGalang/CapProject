@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('ZipCode');
             $table->timestamps();
         });
-            DB::statement("ALTER TABLE shops AUTO_INCREMENT = 1000;");
+        DB::statement("ALTER TABLE addresses AUTO_INCREMENT = 60000000;");
     }
 
     public function down(): void

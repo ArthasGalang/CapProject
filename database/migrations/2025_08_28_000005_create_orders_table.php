@@ -28,6 +28,7 @@ return new class extends Migration
             $table->timestamps();
 
         });
+      DB::statement("ALTER TABLE orders AUTO_INCREMENT = 70000000;");
         Schema::create('order_items', function (Blueprint $table) {
             $table->id('OrderItemID');
             $table->foreignId('OrderID')
@@ -40,6 +41,8 @@ return new class extends Migration
             $table->decimal('Subtotal', 10, 2);
             $table->timestamps();
         });
+        DB::statement("ALTER TABLE order_items AUTO_INCREMENT = 80000000;");
+        
     }
 
 

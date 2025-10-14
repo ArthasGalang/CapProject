@@ -24,7 +24,6 @@ return new class extends Migration
         $table->unsignedInteger("Stock");
         $table->json("Image");
         $table->unsignedInteger('SoldAmount')->default(0);
-        $table->json('Tags')->nullable();
         $table->decimal('Discount', 10, 2)->nullable();
         $table->boolean('IsFeatured')->default(false);
         $table->json('AdditionalImages')->nullable();
@@ -36,7 +35,7 @@ return new class extends Migration
         $table->json('Tags')->nullable();
         $table->timestamps();
       });
-      DB::statement("ALTER TABLE products AUTO_INCREMENT = 10000000;");
+      DB::statement("ALTER TABLE products AUTO_INCREMENT = 30000000;");
 
       Schema::create('reviews', function (Blueprint $table) {
         $table->id("ReviewID");
@@ -51,6 +50,7 @@ return new class extends Migration
         $table->date("ReviewDate");
         $table->timestamps();
       });
+      DB::statement("ALTER TABLE reviews AUTO_INCREMENT = 40000000;");
 
         Schema::create('replies', function (Blueprint $table) {
             $table->id('ReplyID');
@@ -60,6 +60,7 @@ return new class extends Migration
             $table->json('LikedBy')->nullable();
             $table->timestamps();
         });
+      DB::statement("ALTER TABLE replies AUTO_INCREMENT = 50000000;");
 
     }
 

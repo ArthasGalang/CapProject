@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('TargetID');
             $table->timestamps();
         });
+        DB::statement("ALTER TABLE reports AUTO_INCREMENT = 90000000;");
     }
 
     public function down(): void

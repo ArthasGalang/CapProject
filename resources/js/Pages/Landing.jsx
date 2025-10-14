@@ -181,11 +181,9 @@ const Landing = () => {
                                 <div className={`product-info${isHovered ? ' product-info--hidden' : ''}`} style={{width: '100%', textAlign: 'center'}}>
                                     <div className="product-price">₱{(item.Price || 0).toLocaleString()}</div>
                                     <div className="product-rating" style={{justifyContent: 'center'}}>
-                                        <span className="product-rating-stars">
-                                            {'★'.repeat(4)}<span style={{ opacity: 0.5 }}>★</span>
-                                            <span className="product-rating-number">{rating}</span>
+                                        <span className="product-rating-stars" style={{fontWeight:600}}>
+                                            ★{rating} <span style={{color:'#888',margin:'0 6px'}}>|</span> <span className="product-sold">{sold} Sold</span>
                                         </span>
-                                        <span className="product-sold">{sold} sold</span>
                                     </div>
                                 </div>
                                 <div className={`product-buttons${isHovered ? ' product-buttons--visible' : ''}`} style={{width: '100%', textAlign: 'center'}}>

@@ -11,8 +11,11 @@ class ProductsController extends Controller
     // GET /api/products
     public function index()
     {
-        // Get all products with category name
-        $products = Product::with('category')->get();
+        // Get paginated products with category name
+        $limit = intval(request()->query('limit', 20));
+        $page = intval(request()->query('page', 1));
+        $query = Product::with('category');
+        $products = $query->skip(($page - 1) * $limit)->take($limit)->get();
 
         // Format response for frontend
         $result = $products->map(function($product) {

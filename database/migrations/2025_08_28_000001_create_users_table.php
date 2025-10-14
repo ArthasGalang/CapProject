@@ -21,9 +21,8 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('remember_token')->nullable();
             $table->timestamps();
-            $table->foreign('DefaultAddress')->references('AddressID')->on('addresses')->nullOnDelete();
         });
-            DB::statement("ALTER TABLE users AUTO_INCREMENT = 1000000;");
+        DB::statement("ALTER TABLE users AUTO_INCREMENT = 10000000;");
 
 
         Schema::create('shops', function (Blueprint $table) {
@@ -41,7 +40,7 @@ return new class extends Migration
         $table->boolean('hasPhysical')->default(false);
         $table->timestamps();
         });
-            DB::statement("ALTER TABLE shops AUTO_INCREMENT = 10;");
+        DB::statement("ALTER TABLE shops AUTO_INCREMENT = 20000000;");
 
 
         Schema::create('admins', function (Blueprint $table) {
@@ -52,6 +51,7 @@ return new class extends Migration
             $table->boolean('IsSuperAdmin')->default(false);
             $table->timestamps();
         });
+        DB::statement("ALTER TABLE admins AUTO_INCREMENT = 120000000;");
     }
 
     public function down(): void
