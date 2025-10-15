@@ -71,7 +71,7 @@ const BrowseProducts = () => {
             <Header />
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', marginTop: '32px', maxWidth: '1400px', width: '95%', marginLeft: 'auto', marginRight: 'auto' }}>
                 {/* Filter Sidebar */}
-                <aside style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', padding: '32px 24px', minWidth: '260px', maxWidth: '320px', marginRight: '32px', height: '600px' }}>
+                <aside style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', padding: '32px 24px', minWidth: '260px', maxWidth: '320px', marginRight: '32px', height: '835px' }}>
                     <h3 style={{ fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '24px' }}>Filters</h3>
                     {/* Category */}
                     <div style={{ marginBottom: '20px' }}>
@@ -167,7 +167,7 @@ const BrowseProducts = () => {
                     </button>
                 </aside>
                 {/* Main Card */}
-                <div ref={cardRef} style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', padding: '40px 32px 32px 32px', minHeight: '120px', width: '100%', maxHeight: '845px', overflowY: 'auto' }}>
+                <div ref={cardRef} style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', padding: '40px 32px 32px 32px', minHeight: '120px', width: '100%', maxHeight: '845px', overflowY: 'auto' }}>
                     <h1 style={{ textAlign: 'left', fontSize: '2rem', fontWeight: 600, margin: 0, color: '#222' }}> Browse Products</h1>
                     <div style={{ marginTop: '32px', display: 'flex', flexWrap: 'wrap', gap: '32px', justifyContent: 'center' }}>
                         {products.map((product, idx) => {

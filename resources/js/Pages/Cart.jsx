@@ -69,7 +69,7 @@ const Cart = () => (
           <div style={{ fontWeight: 700, fontSize: '1.25rem', color: 'var(--color-primary)' }}>
             Total: ₱300.00
           </div>
-          <button className="loginBtn" style={{ fontWeight: 600, fontSize: '1.1rem', padding: '0.9rem 2.5rem', background: 'var(--color-primary)', border: '2px solid var(--color-primary)' }}>Checkout</button>
+          <button className="loginBtn" style={{ fontWeight: 600, fontSize: '1.1rem', padding: '0.9rem 2.5rem', background: 'var(--color-primary)', border: '2px solid var(--color-primary)' }} onClick={() => window.location.href = '/checkout'}>Checkout</button>
         </div>
       </div>
     </main>

@@ -6,7 +6,24 @@ const Header = () => {
   const [showShopModal, setShowShopModal ] = React.useState(false);
   const [showCreateShop, setShowCreateShop] = React.useState(false);
   const [showAccountMenu, setShowAccountMenu] = React.useState(false);
-  // Get user ID from localStorage
+  const [showBrowseMenu, setShowBrowseMenu] = React.useState(false);
+  const browseRef = React.useRef(null);
+  const accountRef = React.useRef(null);
+  // Close dropdowns when clicking outside
+  React.useEffect(() => {
+    function handleClickOutside(event) {
+      if (browseRef.current && !browseRef.current.contains(event.target)) {
+        setShowBrowseMenu(false);
+      }
+      if (accountRef.current && !accountRef.current.contains(event.target)) {
+        setShowAccountMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   let userId = null;
   try {
     const userData = localStorage.getItem('authToken') ? JSON.parse(localStorage.getItem('user')) : null;
@@ -58,12 +75,29 @@ const Header = () => {
 
           {/* Right: Nav Items */}
           <div className="header-nav-items">
-            <a
-              href="/browse"
-              className="header-nav-link"
-            >
-              Browse
-            </a>
+            <div ref={browseRef} style={{position: 'relative', display: 'inline-block'}}>
+              <button
+                type="button"
+                className="header-nav-link"
+                style={{background: 'none', border: 'none', padding: 0, cursor: 'pointer'}}
+                onClick={() => setShowBrowseMenu(v => !v)}
+              >
+                Browse
+              </button>
+              {typeof window !== 'undefined' && showBrowseMenu && (
+                <div style={{position: 'absolute', left: 0, top: '2.5rem', background: '#fff', borderRadius: 8, boxShadow: '0 2px 12px rgba(0,0,0,0.10)', minWidth: 140, zIndex: 100, padding: '0.5rem 0'}}>
+                  <button
+                    style={{width: '100%', background: 'none', border: 'none', padding: '0.7rem 1.2rem', textAlign: 'left', cursor: 'pointer', fontSize: '1rem'}}
+                    onClick={() => { setShowBrowseMenu(false); window.location.href = '/browse'; }}
+                  >Products</button>
+                  <div style={{height: 1, background: '#eee', margin: '0.2rem 0'}}></div>
+                  <button
+                    style={{width: '100%', background: 'none', border: 'none', padding: '0.7rem 1.2rem', textAlign: 'left', cursor: 'pointer', fontSize: '1rem'}}
+                    onClick={() => { setShowBrowseMenu(false); window.location.href = '/browse-shops'; }}
+                  >Shops</button>
+                </div>
+              )}
+            </div>
             <button type="button" className="header-nav-link" onClick={() => setShowShopModal(true)}>
               Your Shops
             </button>
@@ -71,7 +105,7 @@ const Header = () => {
 
             {/* User */}
             {/* User Dropdown */}
-            <div style={{position: 'relative', display: 'inline-block'}}>
+            <div ref={accountRef} style={{position: 'relative', display: 'inline-block'}}>
               <button
                 type="button"
                 className="header-nav-link"

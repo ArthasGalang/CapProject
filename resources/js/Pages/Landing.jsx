@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import FloatingChatButton from "../Components/FloatingChatButton";
 import Header from "@/Components/Header";
 import AuthModal from "@/Components/AuthModal";
 import "../../css/app.css";
@@ -204,6 +205,9 @@ const Landing = () => {
             <footer className="footerSection">
                 <div className="footerText">© {new Date().getFullYear()} Barangay Gen T. De Leon Marketplace. All rights reserved.</div>
             </footer>
+
+                {/* Floating Chat Button */}
+                <FloatingChatButton onClick={() => alert('Open chat window')} />
         </>
     );
 };

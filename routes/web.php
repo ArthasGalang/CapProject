@@ -1,3 +1,5 @@
+
+
 <?php
 
 use App\Http\Controllers\ProfileController;
@@ -37,18 +39,29 @@ Route::get('/browse', function () {
     return Inertia::render('BrowseProducts');
 });
 
+Route::get('/checkout', function () {
+    return Inertia::render('CheckoutPage');
+});
+
+Route::get('/browse-shops', function () {
+    return Inertia::render('BrowseShop');
+});
+
 Route::get('/account', function () {
     return Inertia::render('Account');
 });
 
-
 Route::get('/shop', function () {
+    return Inertia::render('PageShop');
+});
+
+Route::get('/eshop', function () {
     return Inertia::render('ShopDashboard');
 });
-Route::get('/shop/products', function () {
+Route::get('/eshop/products', function () {
     return Inertia::render('ShopProducts');
 });
-Route::get('/shop/orders', function () {
+Route::get('/eshop/orders', function () {
     return Inertia::render('ShopOrders');
 });
 
