@@ -21,14 +21,24 @@ class ShopController extends Controller
 			'UserID' => 'required|integer',
 			'ShopName' => 'required|string',
 			'ShopDescription' => 'required|string',
-			'LogoImage' => 'nullable|string',
-			'BackgroundImage' => 'nullable|string',
 			'Address' => 'required|string',
-			'BusinessPermit' => 'nullable|string',
 			'hasPhysical' => 'boolean',
+			'LogoImage' => 'nullable|file|image',
+			'BackgroundImage' => 'nullable|file|image',
+			'BusinessPermit' => 'nullable|file|image',
 		]);
+
+		$data = $validated;
+		// Handle file uploads
+		foreach ([['LogoImage', 'logos'], ['BackgroundImage', 'banners'], ['BusinessPermit', 'permits']] as [$field, $folder]) {
+			if ($request->hasFile($field)) {
+				$data[$field] = $request->file($field)->store("shops/$folder", 'public');
+			} else {
+				$data[$field] = null;
+			}
+		}
 		$shop = \App\Models\Shop::create([
-			...$validated,
+			...$data,
 			'isVerified' => false
 		]);
 		return response()->json(['success' => true, 'shop' => $shop], 201);

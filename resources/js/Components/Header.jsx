@@ -53,7 +53,7 @@ const Header = () => {
                 .map(shop => ({
                   id: shop.ShopID || shop.id,
                   name: shop.ShopName || shop.name,
-                  logoUrl: shop.LogoImage || shop.logoUrl,
+                  logoUrl: shop.LogoImage ? `/storage/${shop.LogoImage.replace(/^storage\//, '')}` : shop.logoUrl,
                 }))
             : [];
           setShops(mapped);
@@ -231,17 +231,17 @@ const Header = () => {
                 >
                   <div className="shop-modal-shop-icon">
                     {shop.logoUrl ? (
-                      <img src={shop.logoUrl} alt={shop.name} style={{width: 32, height: 32, borderRadius: '50%'}} />
+                      <img src={shop.logoUrl} alt={shop.name} className="shop-logo-circle" />
                     ) : (
-                      <span style={{width: 32, height: 32, display: 'inline-block', background: '#eee', borderRadius: '50%'}}></span>
+                      <span className="shop-logo-placeholder"></span>
                     )}
                   </div>
                   {shop.name}
                 </button>
               ))
             )}
-            {/* Add Shop: Only show if shops are loaded and less than 3 exist */}
-            {shops && Array.isArray(shops) && shops.length < 3 && shops.length > 0 && (
+            {/* Add Shop: Show if shops are loaded and less than 3 exist */}
+            {shops && Array.isArray(shops) && shops.length < 3 && (
               <div className="shop-modal-add-wrapper">
                 <button
                   className="shop-modal-add-btn"

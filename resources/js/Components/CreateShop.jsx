@@ -53,27 +53,50 @@ const CreateShop = ({ onClose }) => {
       return;
     }
     let addressString = '';
+    let addressId = form.AddressID;
     if (form.addressExisting) {
       const selected = addresses.find(a => (a.AddressID || a.id) == form.AddressID);
       if (selected) {
         addressString = `${selected.HouseNumber || selected.houseNumber}, ${selected.Street || selected.street}, ${selected.Barangay || selected.barangay}, ${selected.Municipality || selected.municipality}, ${selected.ZipCode || selected.zipcode}`;
       }
     } else {
-      addressString = `${form.HouseNumber}, ${form.Street}, ${form.Barangay}, ${form.Municipality}, ${form.ZipCode}`;
+      // Create new address in backend
+      try {
+        const res = await axios.post(`/api/user/${userData.UserID}/addresses`, {
+          Street: form.Street,
+          Barangay: form.Barangay,
+          Municipality: form.Municipality,
+          HouseNumber: form.HouseNumber,
+          ZipCode: form.ZipCode
+        });
+        const addr = res.data;
+        addressId = addr.AddressID || addr.id;
+        addressString = `${addr.HouseNumber}, ${addr.Street}, ${addr.Barangay}, ${addr.Municipality}, ${addr.ZipCode}`;
+      } catch (err) {
+        alert('Failed to create address.');
+        return;
+      }
     }
-    // For images, just send file name for now
-    const payload = {
-      UserID: userData.UserID,
-      ShopName: form.ShopName,
-      ShopDescription: form.ShopDescription,
-      LogoImage: form.LogoImage && form.LogoImage.name ? form.LogoImage.name : '',
-      BackgroundImage: form.BackgroundImage && form.BackgroundImage.name ? form.BackgroundImage.name : '',
-      Address: addressString,
-      BusinessPermit: form.BusinessPermit && form.BusinessPermit.name ? form.BusinessPermit.name : '',
-      hasPhysical: !!form.hasPhysical,
-    };
+    // Use FormData to send files
+    const fd = new FormData();
+    fd.append('UserID', userData.UserID);
+    fd.append('ShopName', form.ShopName);
+    fd.append('ShopDescription', form.ShopDescription);
+    fd.append('Address', addressString);
+    fd.append('hasPhysical', form.hasPhysical ? 1 : 0);
+    if (form.LogoImage instanceof File) {
+      fd.append('LogoImage', form.LogoImage);
+    }
+    if (form.BackgroundImage instanceof File) {
+      fd.append('BackgroundImage', form.BackgroundImage);
+    }
+    if (form.BusinessPermit instanceof File) {
+      fd.append('BusinessPermit', form.BusinessPermit);
+    }
     try {
-      await axios.post('/api/shops', payload);
+      await axios.post('/api/shops', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       alert('Shop registered!');
       if (onClose) onClose();
     } catch (err) {

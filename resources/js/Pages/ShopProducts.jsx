@@ -12,7 +12,7 @@ const initialForm = {
   Description: '',
   Price: '',
   Stock: '',
-  Image: null,
+  Image: [], // array of File or string
   isActive: true,
 };
 
@@ -30,14 +30,18 @@ const ShopProducts = ({ shopId }) => {
     }
   }, [shopId]);
 
+  // Accepts both normal and custom events (from AddProductModal)
   const handleChange = (e) => {
-    const { name, value, type, checked, files } = e.target;
-    if (type === 'checkbox') {
-      setForm({ ...form, [name]: checked });
-    } else if (type === 'file') {
-      setForm({ ...form, [name]: files[0] });
-    } else {
-      setForm({ ...form, [name]: value });
+    if (e && e.target && e.target.name === 'Image') {
+      // Array of File or string
+      setForm({ ...form, Image: e.target.value });
+    } else if (e && e.target) {
+      const { name, value, type, checked, files } = e.target;
+      if (type === 'checkbox') {
+        setForm({ ...form, [name]: checked });
+      } else {
+        setForm({ ...form, [name]: value });
+      }
     }
   };
 
@@ -50,11 +54,51 @@ const ShopProducts = ({ shopId }) => {
     setForm(initialForm);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Integrate with backend
-    alert('Product added! (UI only)');
-    handleCloseModal();
+    if (!shopId) {
+      alert('No shop selected.');
+      return;
+    }
+    const fd = new FormData();
+    fd.append('ShopID', shopId);
+    fd.append('CategoryID', form.CategoryID);
+    fd.append('SKU', form.SKU);
+    fd.append('ProductName', form.ProductName);
+    fd.append('Description', form.Description);
+    fd.append('Price', form.Price);
+    fd.append('Stock', form.Stock);
+    fd.append('Status', form.Status || 'OffSale');
+    fd.append('IsActive', form.IsActive !== undefined ? form.IsActive : true);
+    // Images
+    if (Array.isArray(form.Image)) {
+      form.Image.forEach((img, idx) => {
+        if (img instanceof File) {
+          fd.append('Image[]', img);
+        } else if (typeof img === 'string') {
+          fd.append('ImageUrl[]', img);
+        }
+      });
+    }
+    try {
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        body: fd,
+      });
+      if (res.ok) {
+        alert('Product added!');
+        handleCloseModal();
+        // Optionally refresh products list
+        fetch(`/api/products?shop_id=${shopId}`)
+          .then(res => res.json())
+          .then(data => setProducts(Array.isArray(data) ? data : []))
+          .catch(() => setProducts([]));
+      } else {
+        alert('Failed to add product.');
+      }
+    } catch (err) {
+      alert('Error adding product.');
+    }
   };
 
   return (
@@ -117,6 +161,7 @@ const ShopProducts = ({ shopId }) => {
           onChange={handleChange}
           onClose={handleCloseModal}
           onSubmit={handleSubmit}
+          shopId={shopId}
         />
       )}
       <Footer />

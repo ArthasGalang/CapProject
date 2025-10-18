@@ -8,16 +8,9 @@ class Product extends Model
 {
     protected $table = 'products';
     protected $primaryKey = 'ProductID';
-    public $timestamps = false;
-
-    // Relationship to category
-    public function category()
-    {
-        return $this->belongsTo(Category::class, 'CategoryID', 'CategoryID');
-    }
-
-    // Cast Image attribute to array
-    protected $casts = [
-        'Image' => 'array',
+    public $timestamps = true;
+    protected $fillable = [
+        'ShopID', 'CategoryID', 'SKU', 'ProductName', 'Description', 'Price', 'Stock', 'Image', 'AdditionalImages', 'Status',
+        'SoldAmount', 'Discount', 'IsFeatured', 'Attributes', 'PublishedAt', 'IsActive', 'BoughtBy', 'Tags'
     ];
 }

@@ -10,6 +10,17 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // Truncate tables to avoid duplicate key errors
+    // Disable foreign key checks to allow truncation
+    \DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+    \DB::table('replies')->truncate();
+    \DB::table('reviews')->truncate();
+    \DB::table('products')->truncate();
+    \DB::table('categories')->truncate();
+    \DB::table('shops')->truncate();
+    \DB::table('addresses')->truncate();
+    \DB::table('users')->truncate();
+    \DB::statement('SET FOREIGN_KEY_CHECKS=1;');
         // Users: diverse names, emails, statuses, profile images
         $userData = [
             ['John', 'Doe', 'john.doe@email.com', 'Active', 'https://randomuser.me/api/portraits/men/1.jpg'],
@@ -117,7 +128,8 @@ class DatabaseSeeder extends Seeder
             $shopIds[] = $shopId;
         }
 
-        // Categories: unchanged
+        // Categories: insert only once, avoid duplicates
+    \DB::table('categories')->delete();
         $categoryNames = [
             'Electronics', 'Books', 'Clothing', 'Home', 'Toys', 'Groceries', 'Beauty', 'Sports', 'Automotive', 'Pets', 'Others'
         ];
@@ -270,6 +282,9 @@ class DatabaseSeeder extends Seeder
                 'https://via.placeholder.com/150?text=' . urlencode($productName),
                 'https://via.placeholder.com/150?text=' . urlencode($productName) . '+2'
             ];
+            // Ensure BoughtBy is always an array of user IDs
+            $boughtByRaw = array_rand($userIds, rand(1,5));
+            $boughtBy = is_array($boughtByRaw) ? array_map(function($idx) use ($userIds) { return $userIds[$idx]; }, $boughtByRaw) : [$userIds[$boughtByRaw]];
             $productId = \DB::table('products')->insertGetId([
                 'ShopID' => $shopIds[$shopIdx],
                 'CategoryID' => $categoryIds[$catIdx],
@@ -282,13 +297,15 @@ class DatabaseSeeder extends Seeder
                 'AdditionalImages' => json_encode([$images[1]]),
                 'SoldAmount' => rand(0, $stock),
                 'Status' => ['Active','OutOfStock','OffSale'][rand(0,2)],
-                'isActive' => true,
+                'IsActive' => true,
                 'Attributes' => json_encode($attributes),
                 'Discount' => rand(0, 500),
-                'isFeatured' => (bool)rand(0,1),
+                'IsFeatured' => (bool)rand(0,1),
                 'Tags' => json_encode($tags),
-                'BoughtBy' => json_encode(array_rand($userIds, rand(1,5))),
+                'BoughtBy' => json_encode($boughtBy),
                 'PublishedAt' => now()->subDays(rand(0,365)),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
             $productIds[] = $productId;
         }

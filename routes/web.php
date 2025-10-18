@@ -1,3 +1,4 @@
+
 <?php
 
 use App\Http\Controllers\ProfileController;
@@ -64,7 +65,9 @@ Route::get('/eshop/{id}/products', function ($id) {
 Route::get('/eshop/{id}/orders', function ($id) {
     return Inertia::render('ShopOrders', ['shopId' => $id]);
 });
-
+Route::get('/eshop/{id}/settings', function ($id) {
+    return Inertia::render('ShopSettings', ['shopId' => $id]);
+});
 Route::get('/admin/dashboard', function () {
     return Inertia::render('Admin/Dashboard');
 });
