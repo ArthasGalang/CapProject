@@ -1,3 +1,17 @@
+.shop-sidebar__item--active-min {
+	background: #f3f4f6;
+	color: var(--color-primary);
+	font-weight: var(--shop-font-weight-semibold);
+	border-radius: 50%;
+	width: 44px;
+	height: 44px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: auto;
+	margin-right: auto;
+	box-shadow: 0 0 0 2px var(--color-primary, #28b8641a);
+}
 
 /* Variables */
 :root {
@@ -165,6 +179,7 @@
 	width: 100%;
 	margin-top: 0.3rem;
 	margin-bottom: 0.3rem;
+	margin-left: 0.8rem;
 	position: relative;
 	min-height: 20px;
 	display: flex;
@@ -174,6 +189,7 @@
 .shop-sidebar__hamburger--min {
 	margin-top: 1.2rem;
 	margin-bottom: 1.2rem;
+	margin-left: 0rem;
 	justify-content: center !important; /* Center when minimized */
 }
 .shop-sidebar__hamburger-btn {
@@ -225,7 +241,6 @@
 .shop-sidebar__item--min {
 	padding: 0.7rem 0.5rem;
 	margin-bottom: 0.1rem;
-	width: 44px;
 	gap: 0;
 }
 .shop-sidebar__icon {

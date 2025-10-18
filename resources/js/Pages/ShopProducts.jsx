@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../Components/Header';
 import Footer from '../Components/Footer';
 import ShopSidebar from '../Components/ShopSidebar';
@@ -16,9 +16,19 @@ const initialForm = {
   isActive: true,
 };
 
-const ShopProducts = () => {
+const ShopProducts = ({ shopId }) => {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(initialForm);
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    if (shopId) {
+      fetch(`/api/products?shop_id=${shopId}`)
+        .then(res => res.json())
+        .then(data => setProducts(Array.isArray(data) ? data : []))
+        .catch(() => setProducts([]));
+    }
+  }, [shopId]);
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
@@ -77,23 +87,24 @@ const ShopProducts = () => {
                 </button>
               </div>
               <div className="shop-products-grid">
-                {/* Product Card Example */}
-                {[1,2].map((i) => (
-                  <div key={i} className="shop-product-card">
-                    {/* Image Placeholder */}
-                    <div className="shop-product-image-placeholder">
-                      <span role="img" aria-label="product"></span>
+                {products.length > 0 ? (
+                  products.map(product => (
+                    <div key={product.ProductID} className="shop-product-card">
+                      <div className="shop-product-image-placeholder">
+                        <span role="img" aria-label="product"></span>
+                      </div>
+                      <div className="shop-product-name">{product.ProductName}</div>
+                      <div className="shop-product-price">₱{parseFloat(product.Price).toLocaleString()}</div>
+                      <div className="shop-product-category">{product.CategoryName || product.CategoryID || 'Category'}</div>
+                      <div className="shop-product-buttons">
+                        <button className="shop-product-edit-btn">Edit</button>
+                        <button className="shop-product-delete-btn">Delete</button>
+                      </div>
                     </div>
-                    <div className="shop-product-name">{i === 1 ? 'Smartphone' : 'Product Name'}</div>
-                    <div className="shop-product-price">₱{i === 1 ? '8,000' : '249.99'}</div>
-                    <div className="shop-product-category">{i === 1 ? 'Electronics' : 'Category'}</div>
-                    {/* Buttons */}
-                    <div className="shop-product-buttons">
-                      <button className="shop-product-edit-btn">Edit</button>
-                      <button className="shop-product-delete-btn">Delete</button>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <div style={{textAlign: 'center', color: '#888', width: '100%'}}>No products found for this shop.</div>
+                )}
               </div>
             </div>
           </div>

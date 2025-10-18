@@ -14,7 +14,11 @@ class ProductsController extends Controller
         // Get paginated products with category name
         $limit = intval(request()->query('limit', 20));
         $page = intval(request()->query('page', 1));
+        $shopId = request()->query('shop_id');
         $query = Product::with('category');
+        if ($shopId) {
+            $query->where('ShopID', $shopId);
+        }
         $products = $query->skip(($page - 1) * $limit)->take($limit)->get();
 
         // Format response for frontend

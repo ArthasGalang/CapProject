@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('Street');
             $table->string('Barangay');
             $table->string('Municipality');
-            $table->string('Province');
+            $table->string('HouseNumber');
             $table->string('ZipCode');
             $table->timestamps();
         });

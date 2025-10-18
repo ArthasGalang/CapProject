@@ -1,41 +1,56 @@
 import React, { useState, useEffect } from "react";
 
-const menuItems = [
-  {
-    key: "dashboard",
-    label: "Dashboard",
-    href: "/shop",
-    icon: (
-      <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>
-    ),
-  },
-  {
-    key: "products",
-    label: "Products",
-    href: "/shop/products",
-    icon: (
-      <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 21h8"/></svg>
-    ),
-  },
-  {
-    key: "orders",
-    label: "Orders",
-    href: "/shop/orders",
-    icon: (
-      <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/></svg>
-    ),
-  },
-  {
-    key: "settings",
-    label: "Settings",
-    href: "#",
-    icon: (
-      <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 5 15.4a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09c0 .66.39 1.26 1 1.51a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 8c.66 0 1.26.39 1.51 1H21a2 2 0 0 1 0 4h-.09c-.25 0-.48.09-.68.26"/></svg>
-    ),
-  },
-];
+import { usePage } from '@inertiajs/react';
 
-const ShopSidebar = ({ active = "dashboard" }) => {
+const getShopId = (props) => {
+  // Try to get shopId from props, Inertia page, or URL params
+  if (props && props.shopId) return props.shopId;
+  if (typeof window !== 'undefined') {
+    // Try to get from URL
+    const match = window.location.pathname.match(/\/eshop\/(\d+)\//);
+    if (match) return match[1];
+  }
+  return '';
+};
+
+const ShopSidebar = ({ active = "dashboard", shopId }) => {
+  const id = getShopId({ shopId });
+  const menuItems = [
+    {
+      key: "dashboard",
+      label: "Dashboard",
+      href: `/eshop/${id}/dashboard`,
+      icon: (
+        <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>
+      ),
+    },
+    {
+      key: "products",
+      label: "Products",
+      href: `/eshop/${id}/products`,
+      icon: (
+        <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 21h8"/></svg>
+      ),
+    },
+    {
+      key: "orders",
+      label: "Orders",
+      href: `/eshop/${id}/orders`,
+      icon: (
+        <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/></svg>
+      ),
+    },
+    {
+      key: "settings",
+      label: "Settings",
+      href: "#",
+      icon: (
+        <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 5 15.4a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09c0 .66.39 1.26 1 1.51a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 8c.66 0 1.26.39 1.51 1H21a2 2 0 0 1 0 4h-.09c-.25 0-.48.09-.68.26"/></svg>
+      ),
+    },
+  ];
+
+// ...existing code...
   const [minimized, setMinimized] = useState(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('shopSidebarMinimized');

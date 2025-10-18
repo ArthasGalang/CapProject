@@ -55,16 +55,17 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
 
   // Registration form state
   const [regForm, setRegForm] = useState({
-    firstName: '',
-    lastName: '',
-    password: '',
-    confirmPassword: '',
-    email: '',
-    contactNumber: '',
-    barangay: '',
-    municipality: '',
-    zipcode: '',
-    houseNumber: '',
+  firstName: '',
+  lastName: '',
+  password: '',
+  confirmPassword: '',
+  email: '',
+  contactNumber: '',
+  barangay: '',
+  municipality: '',
+  zipcode: '',
+  houseNumber: '',
+  street: '',
   });
   const [regError, setRegError] = useState('');
   const [regSuccess, setRegSuccess] = useState('');
@@ -97,7 +98,7 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
         setRegSuccess('Registration successful!');
         setRegForm({
           firstName: '', lastName: '', password: '', confirmPassword: '',
-          email: '', contactNumber: '', barangay: '', municipality: '', zipcode: '', houseNumber: ''
+          email: '', contactNumber: '', barangay: '', municipality: '', zipcode: '', houseNumber: '', street: ''
         });
       } else {
         setRegError(data.message || 'Registration failed.');
@@ -157,6 +158,7 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
             {/* Address Section */}
             <div className="auth-section">
               <h3 className="auth-section-title">Address</h3>
+              <input type="text" name="street" value={regForm.street} onChange={handleRegChange} placeholder="Street" className="auth-input" required disabled={loadingRegister} />
               <input type="text" name="barangay" value={regForm.barangay} onChange={handleRegChange} placeholder="Barangay" className="auth-input" required disabled={loadingRegister} />
               <input type="text" name="municipality" value={regForm.municipality} onChange={handleRegChange} placeholder="Municipality" className="auth-input" required disabled={loadingRegister} />
               <input type="text" name="zipcode" value={regForm.zipcode} onChange={handleRegChange} placeholder="Zipcode" className="auth-input" required disabled={loadingRegister} />

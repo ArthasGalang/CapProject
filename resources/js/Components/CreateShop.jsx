@@ -8,7 +8,13 @@ const CreateShop = ({ onClose }) => {
     LogoImage: null,
     BackgroundImage: null,
     AddressID: '',
-    BusinessPermit: null
+    BusinessPermit: null,
+    hasPhysical: false,
+    addressExisting: true,
+    Barangay: '',
+    Municipality: '',
+    ZipCode: '',
+    HouseNumber: ''
   });
   const [addresses, setAddresses] = useState([]);
   const [logoPreview, setLogoPreview] = useState(null);
@@ -19,15 +25,17 @@ const CreateShop = ({ onClose }) => {
     // Fetch user's addresses
     const userData = localStorage.getItem('authToken') ? JSON.parse(localStorage.getItem('user')) : null;
     if (userData && userData.UserID) {
-      axios.get(`/api/addresses?user_id=${userData.UserID}`)
+      axios.get(`/api/user/${userData.UserID}/addresses`)
         .then(res => setAddresses(res.data))
         .catch(() => setAddresses([]));
     }
   }, []);
 
   const handleChange = (e) => {
-    const { name, value, files } = e.target;
-    if (files && files[0]) {
+    const { name, value, files, type, checked } = e.target;
+    if (type === 'checkbox') {
+      setForm({ ...form, [name]: checked });
+    } else if (files && files[0]) {
       setForm({ ...form, [name]: files[0] });
       if (name === 'LogoImage') setLogoPreview(URL.createObjectURL(files[0]));
       if (name === 'BackgroundImage') setBannerPreview(URL.createObjectURL(files[0]));
@@ -37,11 +45,40 @@ const CreateShop = ({ onClose }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Connect to backend API to register shop
-    alert('Shop registered!');
-    if (onClose) onClose();
+    const userData = localStorage.getItem('authToken') ? JSON.parse(localStorage.getItem('user')) : null;
+    if (!userData || !userData.UserID) {
+      alert('User not found. Please login.');
+      return;
+    }
+    let addressString = '';
+    if (form.addressExisting) {
+      const selected = addresses.find(a => (a.AddressID || a.id) == form.AddressID);
+      if (selected) {
+        addressString = `${selected.HouseNumber || selected.houseNumber}, ${selected.Street || selected.street}, ${selected.Barangay || selected.barangay}, ${selected.Municipality || selected.municipality}, ${selected.ZipCode || selected.zipcode}`;
+      }
+    } else {
+      addressString = `${form.HouseNumber}, ${form.Street}, ${form.Barangay}, ${form.Municipality}, ${form.ZipCode}`;
+    }
+    // For images, just send file name for now
+    const payload = {
+      UserID: userData.UserID,
+      ShopName: form.ShopName,
+      ShopDescription: form.ShopDescription,
+      LogoImage: form.LogoImage && form.LogoImage.name ? form.LogoImage.name : '',
+      BackgroundImage: form.BackgroundImage && form.BackgroundImage.name ? form.BackgroundImage.name : '',
+      Address: addressString,
+      BusinessPermit: form.BusinessPermit && form.BusinessPermit.name ? form.BusinessPermit.name : '',
+      hasPhysical: !!form.hasPhysical,
+    };
+    try {
+      await axios.post('/api/shops', payload);
+      alert('Shop registered!');
+      if (onClose) onClose();
+    } catch (err) {
+      alert('Failed to register shop.');
+    }
   };
 
   return (
@@ -88,14 +125,99 @@ const CreateShop = ({ onClose }) => {
           </div>
           <div className="auth-section">
             <div className="auth-section-title">Address</div>
-            <select name="AddressID" value={form.AddressID} onChange={handleChange} required className="auth-input">
-              <option value="">Select address</option>
-              {addresses.map(addr => (
-                <option key={addr.AddressID} value={addr.AddressID}>
-                  {addr.Street}, {addr.Barangay}, {addr.Municipality}, {addr.Province}, {addr.ZipCode}
-                </option>
-              ))}
-            </select>
+            <div className="shop-modal-checkbox-wrapper" style={{marginBottom: '0.7rem'}}>
+              <input
+                type="checkbox"
+                id="addressExisting"
+                name="addressExisting"
+                checked={form.addressExisting}
+                onChange={handleChange}
+              />
+              <label htmlFor="addressExisting" className="shop-modal-checkbox-label">Existing?</label>
+            </div>
+            {form.addressExisting ? (
+              <div>
+                <div style={{fontSize: '0.95rem', fontWeight: 500, marginBottom: '0.3rem'}}>Select from your existing addresses</div>
+                <select name="AddressID" value={form.AddressID} onChange={handleChange} required className="auth-input">
+                  <option value="">Select address</option>
+                  {Array.from(
+                    new Map(
+                      addresses.map(addr => [
+                        `${addr.HouseNumber || addr.houseNumber},${addr.Street || addr.street},${addr.Barangay || addr.barangay},${addr.Municipality || addr.municipality},${addr.ZipCode || addr.zipcode}`,
+                        addr
+                      ])
+                    ).values()
+                  ).map(addr => (
+                    <option key={addr.AddressID || addr.id} value={addr.AddressID || addr.id}>
+                      {addr.HouseNumber || addr.houseNumber}, {addr.Street || addr.street}, {addr.Barangay || addr.barangay}, {addr.Municipality || addr.municipality}, {addr.ZipCode || addr.zipcode}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem'}}>
+                <div>
+                  <div style={{fontSize: '0.95rem', fontWeight: 500, marginBottom: '0.3rem'}}>Street</div>
+                  <input
+                    type="text"
+                    name="Street"
+                    value={form.Street}
+                    onChange={handleChange}
+                    className="auth-input"
+                    placeholder="Street"
+                    required
+                  />
+                </div>
+                <div>
+                  <div style={{fontSize: '0.95rem', fontWeight: 500, marginBottom: '0.3rem'}}>Barangay</div>
+                  <input
+                    type="text"
+                    name="Barangay"
+                    value={form.Barangay}
+                    onChange={handleChange}
+                    className="auth-input"
+                    placeholder="Barangay"
+                    required
+                  />
+                </div>
+                <div>
+                  <div style={{fontSize: '0.95rem', fontWeight: 500, marginBottom: '0.3rem'}}>Municipality</div>
+                  <input
+                    type="text"
+                    name="Municipality"
+                    value={form.Municipality}
+                    onChange={handleChange}
+                    className="auth-input"
+                    placeholder="Municipality"
+                    required
+                  />
+                </div>
+                <div>
+                  <div style={{fontSize: '0.95rem', fontWeight: 500, marginBottom: '0.3rem'}}>Zip Code</div>
+                  <input
+                    type="text"
+                    name="ZipCode"
+                    value={form.ZipCode}
+                    onChange={handleChange}
+                    className="auth-input"
+                    placeholder="Zip Code"
+                    required
+                  />
+                </div>
+                <div>
+                  <div style={{fontSize: '0.95rem', fontWeight: 500, marginBottom: '0.3rem'}}>House Number</div>
+                  <input
+                    type="text"
+                    name="HouseNumber"
+                    value={form.HouseNumber}
+                    onChange={handleChange}
+                    className="auth-input"
+                    placeholder="House Number"
+                    required
+                  />
+                </div>
+              </div>
+            )}
           </div>
           <div className="auth-section">
             <div className="auth-section-title">Business Permit</div>
@@ -110,6 +232,20 @@ const CreateShop = ({ onClose }) => {
               <span style={{fontWeight: 500, color: '#229954'}}>Upload Permit</span>
               <input id="permit-upload" type="file" name="BusinessPermit" accept="image/*" onChange={handleChange} style={{display: 'none'}} />
             </label>
+          </div>
+          <div className="auth-section" style={{marginTop: '0.5rem'}}>
+            <div className="shop-modal-checkbox-wrapper">
+              <input
+                type="checkbox"
+                id="hasPhysical"
+                name="hasPhysical"
+                checked={form.hasPhysical}
+                onChange={handleChange}
+              />
+              <label htmlFor="hasPhysical" className="shop-modal-checkbox-label">
+                Do you have a physical store?
+              </label>
+            </div>
           </div>
           <div className="auth-modal-actions" style={{flexDirection: 'row', justifyContent: 'center'}}>
             <button type="button" onClick={onClose} className="auth-button" style={{background: 'var(--color-gray)', color: '#fff', marginRight: '0.7rem'}}>Cancel</button>

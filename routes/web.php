@@ -1,5 +1,3 @@
-
-
 <?php
 
 use App\Http\Controllers\ProfileController;
@@ -55,14 +53,16 @@ Route::get('/shop', function () {
     return Inertia::render('PageShop');
 });
 
-Route::get('/eshop', function () {
-    return Inertia::render('ShopDashboard');
+
+
+Route::get('/eshop/{id}/dashboard', function ($id) {
+    return Inertia::render('ShopDashboard', ['shopId' => $id]);
 });
-Route::get('/eshop/products', function () {
-    return Inertia::render('ShopProducts');
+Route::get('/eshop/{id}/products', function ($id) {
+    return Inertia::render('ShopProducts', ['shopId' => $id]);
 });
-Route::get('/eshop/orders', function () {
-    return Inertia::render('ShopOrders');
+Route::get('/eshop/{id}/orders', function ($id) {
+    return Inertia::render('ShopOrders', ['shopId' => $id]);
 });
 
 Route::get('/admin/dashboard', function () {

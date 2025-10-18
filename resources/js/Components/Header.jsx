@@ -1,5 +1,6 @@
 import React from "react";
 import CreateShop from "./CreateShop";
+import LoginRegister from "./LoginRegister";
 import { ShoppingCart, User, Search } from "lucide-react";
 
 const Header = () => {
@@ -9,6 +10,7 @@ const Header = () => {
   const [showBrowseMenu, setShowBrowseMenu] = React.useState(false);
   const browseRef = React.useRef(null);
   const accountRef = React.useRef(null);
+  const [showLoginModal, setShowLoginModal] = React.useState(false);
   // Close dropdowns when clicking outside
   React.useEffect(() => {
     function handleClickOutside(event) {
@@ -32,6 +34,53 @@ const Header = () => {
     userId = null;
   }
 
+  // Shops state
+  const [shops, setShops] = React.useState([]);
+  // User addresses state
+  const [userAddresses, setUserAddresses] = React.useState([]);
+  const [selectedAddressId, setSelectedAddressId] = React.useState('');
+
+  // Fetch shops for userId when shop modal opens
+  React.useEffect(() => {
+    if (showShopModal && userId) {
+      fetch(`http://127.0.0.1:8000/api/shops?user_id=${userId}`)
+        .then(res => res.json())
+        .then(data => {
+          // Map backend shop data to expected frontend format
+          const mapped = Array.isArray(data)
+            ? data
+                .filter(shop => shop.UserID == userId)
+                .map(shop => ({
+                  id: shop.ShopID || shop.id,
+                  name: shop.ShopName || shop.name,
+                  logoUrl: shop.LogoImage || shop.logoUrl,
+                }))
+            : [];
+          setShops(mapped);
+        })
+        .catch(() => setShops([]));
+    }
+    if (!showShopModal) {
+      setShops([]);
+    }
+  }, [showShopModal, userId]);
+
+  // Fetch addresses for current user on mount
+  React.useEffect(() => {
+    if (userId) {
+      fetch(`http://127.0.0.1:8000/api/user/${userId}/addresses`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setUserAddresses(data);
+        })
+        .catch(() => setUserAddresses([]));
+    } else {
+      setUserAddresses([]);
+    }
+  }, [userId]);
+
   // On mount, check if userId exists in DB
   React.useEffect(() => {
     if (!userId) return;
@@ -39,14 +88,10 @@ const Header = () => {
     fetch(`/api/check-user/${userId}`)
       .then(res => res.json())
       .then(data => {
-        if (!data.exists) {
-          localStorage.clear();
-          window.location.reload();
-        }
+        // Optionally handle user not found, but do NOT clear localStorage or reload here
       })
       .catch(() => {
-        localStorage.clear();
-        window.location.reload();
+        // Optionally handle error, but do NOT clear localStorage or reload here
       });
   }, []);
 
@@ -98,9 +143,11 @@ const Header = () => {
                 </div>
               )}
             </div>
-            <button type="button" className="header-nav-link" onClick={() => setShowShopModal(true)}>
-              Your Shops
-            </button>
+            {userId && (
+              <button type="button" className="header-nav-link" onClick={() => setShowShopModal(true)}>
+                Your Shops
+              </button>
+            )}
 
 
             {/* User */}
@@ -121,10 +168,17 @@ const Header = () => {
                     onClick={() => { setShowAccountMenu(false); window.location.href = '/account'; }}
                   >Account</button>
                   <div style={{height: 1, background: '#eee', margin: '0.2rem 0'}}></div>
-                  <button
-                    style={{width: '100%', background: 'none', border: 'none', padding: '0.7rem 1.2rem', textAlign: 'left', cursor: 'pointer', fontSize: '1rem', color: 'red'}}
-                    onClick={() => { localStorage.clear(); window.location.reload(); }}
-                  >Logout</button>
+                  {userId ? (
+                    <button
+                      style={{width: '100%', background: 'none', border: 'none', padding: '0.7rem 1.2rem', textAlign: 'left', cursor: 'pointer', fontSize: '1rem', color: 'red'}}
+                      onClick={() => { localStorage.clear(); window.location.reload(); }}
+                    >Logout</button>
+                  ) : (
+                    <button
+                      style={{width: '100%', background: 'none', border: 'none', padding: '0.7rem 1.2rem', textAlign: 'left', cursor: 'pointer', fontSize: '1rem', color: 'green'}}
+                      onClick={() => { setShowLoginModal(true); }}
+                    >Login</button>
+                  )}
                 </div>
               )}
             </div>
@@ -134,10 +188,14 @@ const Header = () => {
               <ShoppingCart size={22} />
               <span className="header-cart-badge">3</span>
             </a>
-            {userId && (
-              <span className="header-user-id" style={{marginLeft: '0.7rem', fontWeight: 'bold', color: 'var(--color-primary)'}}>ID: {userId}</span>
-            )}
+            <span className="header-user-id" style={{marginLeft: '0.7rem', fontWeight: 'bold', color: 'var(--color-primary)'}}>
+              ID: {userId ? userId : 'No Login'}
+            </span>
+            {/* Address Dropdown removed from header. Now only handled inside CreateShop modal. */}
           </div>
+          {showLoginModal && (
+            <LoginRegister onClose={() => setShowLoginModal(false)} />
+          )}
         </nav>
       </header>
 
@@ -151,33 +209,56 @@ const Header = () => {
           <div className="shop-modal">
             <button onClick={() => setShowShopModal(false)} className="shop-modal-close">&times;</button>
             <h2 className="shop-modal-title">Shops</h2>
-            {/* Shop 1 */}
-            <button
-              className="shop-modal-shop-btn"
-              onMouseEnter={e => (e.currentTarget.style.background = '#28b864ff')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-primary)')}
-              onClick={() => { window.location.href = '/shop'; }}
-            >
-              <div className="shop-modal-shop-icon"></div>
-              Shop 1
-            </button>
-            {/* Add Shop */}
-            <div className="shop-modal-add-wrapper">
-              <button
-                className="shop-modal-add-btn"
-                onClick={() => setShowCreateShop(true)}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = 'var(--color-primary)';
-                  e.currentTarget.style.color = '#fff';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = '#fff';
-                  e.currentTarget.style.color = 'var(--color-primary)';
-                }}
-              >
-                <span className="shop-modal-add-icon">+</span>
-              </button>
-            </div>
+            {/* User Shops */}
+            {shops.filter(shop => shop.name && shop.name.trim()).length === 0 ? (
+              <div style={{textAlign: 'center', margin: '1.2rem 0', color: '#888'}}>No shops found.</div>
+            ) : (
+              shops.filter(shop => shop.name && shop.name.trim()).map(shop => (
+                <button
+                  key={shop.id}
+                  className="shop-modal-shop-btn"
+                  onMouseEnter={e => (e.currentTarget.style.background = '#28b864ff')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-primary)')}
+                  onClick={() => {
+                    const shopId = shop.ShopID || shop.id;
+                    const url = `/eshop/${shopId}/dashboard`;
+                    if (window.Inertia) {
+                      window.Inertia.visit(url);
+                    } else {
+                      window.location.href = url;
+                    }
+                  }}
+                >
+                  <div className="shop-modal-shop-icon">
+                    {shop.logoUrl ? (
+                      <img src={shop.logoUrl} alt={shop.name} style={{width: 32, height: 32, borderRadius: '50%'}} />
+                    ) : (
+                      <span style={{width: 32, height: 32, display: 'inline-block', background: '#eee', borderRadius: '50%'}}></span>
+                    )}
+                  </div>
+                  {shop.name}
+                </button>
+              ))
+            )}
+            {/* Add Shop: Only show if shops are loaded and less than 3 exist */}
+            {shops && Array.isArray(shops) && shops.length < 3 && shops.length > 0 && (
+              <div className="shop-modal-add-wrapper">
+                <button
+                  className="shop-modal-add-btn"
+                  onClick={() => setShowCreateShop(true)}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'var(--color-primary)';
+                    e.currentTarget.style.color = '#fff';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = '#fff';
+                    e.currentTarget.style.color = 'var(--color-primary)';
+                  }}
+                >
+                  <span className="shop-modal-add-icon">+</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

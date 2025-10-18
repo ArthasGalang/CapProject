@@ -24,6 +24,7 @@ class UsersController extends Controller
             'municipality' => 'required|string|max:255',
             'zipcode' => 'required|string|max:10',
             'houseNumber' => 'required|string|max:50',
+            'street' => 'required|string|max:255',
         ]);
 
         $user = Users::create([
@@ -32,7 +33,18 @@ class UsersController extends Controller
             'Email' => $validated['email'],
             'Password' => bcrypt($validated['password']),
             'ContactNumber' => $validated['contactNumber'],
-            // Address fields can be stored in a separate table if needed
+        ]);
+
+        // Save address to addresses table
+        \DB::table('addresses')->insert([
+            'UserID' => $user->UserID,
+            'Barangay' => $validated['barangay'],
+            'Municipality' => $validated['municipality'],
+            'HouseNumber' => $validated['houseNumber'],
+            'ZipCode' => $validated['zipcode'],
+            'Street' => $validated['street'],
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         return response()->json(['message' => 'User registered successfully.'], 201);

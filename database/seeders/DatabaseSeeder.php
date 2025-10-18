@@ -47,16 +47,16 @@ class DatabaseSeeder extends Seeder
 
         // Addresses: realistic, 1 per user, rest distributed
         $addressTemplates = [
-            ['123 Main St', 'Central', 'Metro City', 'Metro Province', '1000'],
-            ['456 Oak Ave', 'North', 'Metro City', 'Metro Province', '1001'],
-            ['789 Pine Rd', 'East', 'Metro City', 'Metro Province', '1002'],
-            ['321 Maple St', 'West', 'Metro City', 'Metro Province', '1003'],
-            ['654 Elm St', 'South', 'Metro City', 'Metro Province', '1004'],
-            ['987 Cedar Ave', 'Central', 'Metro City', 'Metro Province', '1005'],
-            ['246 Spruce Rd', 'North', 'Metro City', 'Metro Province', '1006'],
-            ['135 Birch St', 'East', 'Metro City', 'Metro Province', '1007'],
-            ['864 Willow Ave', 'West', 'Metro City', 'Metro Province', '1008'],
-            ['579 Aspen Rd', 'South', 'Metro City', 'Metro Province', '1009'],
+            ['Main St', 'Central', 'Metro City', '123', '1000'],
+            ['Oak Ave', 'North', 'Metro City', '456', '1001'],
+            ['Pine Rd', 'East', 'Metro City', '789', '1002'],
+            ['Maple St', 'West', 'Metro City', '321', '1003'],
+            ['Elm St', 'South', 'Metro City', '654', '1004'],
+            ['Cedar Ave', 'Central', 'Metro City', '987', '1005'],
+            ['Spruce Rd', 'North', 'Metro City', '246', '1006'],
+            ['Birch St', 'East', 'Metro City', '135', '1007'],
+            ['Willow Ave', 'West', 'Metro City', '864', '1008'],
+            ['Aspen Rd', 'South', 'Metro City', '579', '1009'],
         ];
         $addressIds = [];
         for ($i = 0; $i < 15; $i++) {
@@ -66,7 +66,7 @@ class DatabaseSeeder extends Seeder
                 'Street' => $template[0],
                 'Barangay' => $template[1],
                 'Municipality' => $template[2],
-                'Province' => $template[3],
+                'HouseNumber' => $template[3], // Province replaced by HouseNumber
                 'ZipCode' => $template[4],
             ]);
             $addressIds[] = $address;

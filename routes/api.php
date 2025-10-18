@@ -21,7 +21,20 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::get('/products', [ProductsController::class, 'index']);
 Route::get('/shops', [ShopController::class, 'index']);
+Route::post('/shops', [ShopController::class, 'store']);
 
 Route::get('/test', function() {
     return response()->json(['status' => 'API working']);
+});
+
+// Get all addresses for a user (preferred and only method)
+Route::get('/user/{id}/addresses', function($id) {
+    $addresses = \DB::table('addresses')->where('UserID', $id)->get();
+    return response()->json($addresses);
+});
+
+// Check if user exists
+Route::get('/check-user/{id}', function($id) {
+    $user = \DB::table('users')->where('UserID', $id)->first();
+    return response()->json(['exists' => !!$user]);
 });
