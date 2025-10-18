@@ -1,5 +1,6 @@
 import React from "react";
 import Header from "../Components/Header";
+import Footer from "../Components/Footer";
 
 const BrowseShop = () => {
     const [shops, setShops] = React.useState([]);
@@ -232,6 +233,7 @@ const BrowseShop = () => {
                     </div>
                 </div>
             </div>
+            <Footer />
         </>
     );
 };

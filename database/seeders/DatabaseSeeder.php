@@ -120,7 +120,7 @@ class DatabaseSeeder extends Seeder
                 'ShopDescription' => $shop[1],
                 'LogoImage' => 'https://via.placeholder.com/150?text=' . urlencode($shop[0]),
                 'BackgroundImage' => 'https://via.placeholder.com/300x100?text=' . urlencode($shop[0]) . '+BG',
-                'Address' => $addressTemplates[$i % 10][0],
+                'AddressID' => $addressIds[$i % count($addressIds)],
                 'BusinessPermit' => 'Permit-' . ($i+1),
                 'isVerified' => $shop[2],
                 'hasPhysical' => $shop[3],

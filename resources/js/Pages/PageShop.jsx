@@ -21,6 +21,7 @@ const dummyProducts = [
     }
 ];
 import React from "react";
+import ProductCard from "../Components/ProductCard";
 let usePage;
 try {
     // Only import if available (Inertia context)
@@ -42,6 +43,7 @@ const TikTokIcon = () => (
     <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="#000"/><path d="M20.5 12.5c-.7 0-1.5-.6-1.5-1.5V10h-2v8.5c0 .8-.7 1.5-1.5 1.5s-1.5-.7-1.5-1.5.7-1.5 1.5-1.5c.1 0 .2 0 .5.1v-2c-.2 0-.3-.1-.5-.1-2 0-3.5 1.6-3.5 3.5s1.6 3.5 3.5 3.5 3.5-1.6 3.5-3.5v-4.5c.5.4 1.2.7 2 .7v-2.2z" fill="#fff"/></svg>
 );
 import Header from "../Components/Header";
+import Footer from "../Components/Footer";
 
 const placeholderShop = {
     ShopID: 20000001,
@@ -324,55 +326,21 @@ const ShopPage = () => {
                             const pageProducts = allProducts.slice(startIdx, startIdx + PRODUCTS_PER_PAGE);
                             return <>
                                 {pageProducts.map((product, idx) => {
-                                    const rating = product.avgRating != null ? product.avgRating : 0;
-                                    let sold = 0;
-                                    if (product.BoughtBy) {
-                                        try {
-                                            const arr = typeof product.BoughtBy === 'string' ? JSON.parse(product.BoughtBy) : product.BoughtBy;
-                                            if (Array.isArray(arr)) sold = arr.length;
-                                        } catch (e) { sold = 0; }
-                                    }
                                     const globalIdx = startIdx + idx;
                                     return (
-                                        <div
+                                        <ProductCard
                                             key={product.ProductID || product.name}
-                                            className={`product-card${hoveredIdx === globalIdx ? ' product-card--hovered' : ''}`}
-                                            style={{
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                width: '100%',
-                                                height: '100%',
-                                                boxSizing: 'border-box',
-                                                margin: 0,
-                                                position: 'relative',
-                                                cursor: 'pointer'
-                                            }}
+                                            product={product}
+                                            isHovered={hoveredIdx === globalIdx}
                                             onMouseEnter={() => setHoveredIdx(globalIdx)}
                                             onMouseLeave={() => setHoveredIdx(null)}
                                             onClick={() => window.location.href = `/product/${product.ProductID || ''}`}
-                                        >
-                                            <img
-                                                src={product.Image || product.image || "https://via.placeholder.com/90x90?text=Product"}
-                                                alt={product.ProductName || product.name}
-                                                className="product-image"
-                                                style={{ display: 'block', margin: '0 auto' }}
-                                            />
-                                            <div className="product-name" style={{textAlign: 'center', width: '100%'}}>{product.ProductName || product.name}</div>
-                                            <div className={`product-info${hoveredIdx === globalIdx ? ' product-info--hidden' : ''}`} style={{width: '100%', textAlign: 'center'}}>
-                                                <div className="product-price">₱{(product.Price || product.price || 0).toLocaleString()}</div>
-                                                <div className="product-rating" style={{justifyContent: 'center'}}>
-                                                    <span className="product-rating-stars" style={{fontWeight:600}}>
-                                                        ★{rating} <span style={{color:'#888',margin:'0 6px'}}>|</span> <span className="product-sold">{sold} Sold</span>
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className={`product-buttons${hoveredIdx === globalIdx ? ' product-buttons--visible' : ''}`} style={{width: '100%', textAlign: 'center'}}>
-                                                <button className="add-to-cart-btn" style={{marginBottom: '6px'}} onClick={e => e.stopPropagation()}>Add to Cart</button>
-                                                <button className="buy-now-btn" onClick={e => e.stopPropagation()}>Buy Now</button>
-                                            </div>
-                                        </div>
+                                            style={{textAlign: 'center', width: '100%', cursor: 'pointer'}}
+                                            buttonProps={{
+                                                onAddToCart: (e, product) => {},
+                                                onBuyNow: (e, product) => {},
+                                            }}
+                                        />
                                     );
                                 })}
                                 {/* Paginator UI */}
@@ -415,6 +383,7 @@ const ShopPage = () => {
                     </div>
                 </div>
             </div>
+            <Footer />
         </>
     );
 };

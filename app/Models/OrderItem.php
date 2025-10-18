@@ -1,0 +1,14 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class OrderItem extends Model
+{
+    protected $table = 'order_items';
+    protected $primaryKey = 'OrderItemID';
+    protected $fillable = [
+        'OrderID', 'ProductID', 'Quantity', 'Subtotal'
+    ];
+}

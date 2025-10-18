@@ -1,6 +1,7 @@
 
 import Header from "../Components/Header";
 import { User } from "lucide-react";
+import Footer from "../Components/Footer";
 
 const Account = () => {
   let user = null;
@@ -37,6 +38,7 @@ const Account = () => {
           )}
         </div>
       </section>
+      <Footer />
     </>
   );
 };

@@ -2,7 +2,9 @@
 
 import React from "react";
 import Header from "../Components/Header";
+import ProductCard from "../Components/ProductCard";
 
+import Footer from "../Components/Footer";
 
 
 const BrowseProducts = () => {
@@ -200,56 +202,20 @@ const BrowseProducts = () => {
                             products.length === 0 ? (
                                 <div style={{ width: '100%', textAlign: 'center', color: '#888', fontSize: '1.2rem', marginTop: '48px' }}>No products found.</div>
                             ) : (
-                                products.map((product, idx) => {
-                                    const isHovered = hoveredIdx === idx;
-                                    const rating = product.avgRating != null ? product.avgRating : 0;
-                                    let sold = 0;
-                                    if (product.BoughtBy) {
-                                        try {
-                                            const arr = typeof product.BoughtBy === 'string' ? JSON.parse(product.BoughtBy) : product.BoughtBy;
-                                            if (Array.isArray(arr)) sold = arr.length;
-                                        } catch (e) { sold = 0; }
-                                    }
-                                    return (
-                                        <div
-                                            key={product.ProductID || product.name}
-                                            className={`product-card${isHovered ? ' product-card--hovered' : ''}`}
-                                            onMouseEnter={() => setHoveredIdx(idx)}
-                                            onMouseLeave={() => setHoveredIdx(null)}
-                                            onClick={() => window.location.href = `/product/${product.ProductID || ''}`}
-                                            style={{
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                width: '100%',
-                                                height: '100%',
-                                                boxSizing: 'border-box',
-                                                margin: 0,
-                                                position: 'relative',
-                                            }}
-                                        >
-                                            <img
-                                                src={product.Image || product.image || "https://via.placeholder.com/90x90?text=Product"}
-                                                alt={product.ProductName || product.name}
-                                                className="product-image"
-                                            />
-                                            <div className="product-name">{product.ProductName || product.name}</div>
-                                            <div className={`product-info${isHovered ? ' product-info--hidden' : ''}`}> 
-                                                <div className="product-price">₱{(product.Price || product.price || 0).toLocaleString()}</div>
-                                                <div className="product-rating">
-                                                    <span className="product-rating-stars" style={{fontWeight:600}}>
-                                                        ★{rating} <span style={{color:'#888',margin:'0 6px'}}>|</span> <span className="product-sold">{sold} Sold</span>
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className={`product-buttons${isHovered ? ' product-buttons--visible' : ''}`}> 
-                                                <button className="add-to-cart-btn" onClick={e => e.stopPropagation()}>Add to Cart</button>
-                                                <button className="buy-now-btn" onClick={e => e.stopPropagation()}>Buy Now</button>
-                                            </div>
-                                        </div>
-                                    );
-                                })
+                                products.map((product, idx) => (
+                                    <ProductCard
+                                        key={product.ProductID || product.name}
+                                        product={product}
+                                        isHovered={hoveredIdx === idx}
+                                        onMouseEnter={() => setHoveredIdx(idx)}
+                                        onMouseLeave={() => setHoveredIdx(null)}
+                                        onClick={() => window.location.href = `/product/${product.ProductID || ''}`}
+                                        buttonProps={{
+                                            onAddToCart: (e, product) => {},
+                                            onBuyNow: (e, product) => {},
+                                        }}
+                                    />
+                                ))
                             )
                         )}
                         {scrollLoading && (
@@ -261,6 +227,7 @@ const BrowseProducts = () => {
                     </div>
                 </div>
             </div>
+            <Footer />
         </>
     );
 };

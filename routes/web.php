@@ -42,8 +42,14 @@ Route::get('/browse', function () {
     return Inertia::render('BrowseProducts');
 });
 
-Route::get('/checkout', function () {
-    return Inertia::render('CheckoutPage');
+use Illuminate\Http\Request;
+
+Route::get('/checkout', function (Request $request) {
+    return Inertia::render('CheckoutPage', [
+        'userId' => $request->input('userId'),
+        'selectedCartItemIds' => $request->input('selectedCartItemIds'),
+        'total' => $request->input('total'),
+    ]);
 });
 
 Route::get('/browse-shops', function () {

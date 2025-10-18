@@ -14,7 +14,14 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\OrderController;
 
+
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\AddressController;
+
+Route::get('/addresses', [AddressController::class, 'getUserAddresses']);
+use App\Http\Controllers\CartItemController;
 
 Route::post('/register', [UsersController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -22,9 +29,19 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::get('/products', [ProductController::class, 'index']);
 Route::post('/products', [ProductController::class, 'store']);
-
 Route::get('/product/{ProductID}', [ProductController::class, 'show']);
+
+Route::get('/cart-items/checkout', [CartController::class, 'getCheckoutItems']);
+Route::post('/cart/add', [CartController::class, 'add']);
+Route::post('/cart-items', [CartItemController::class, 'store']);
+Route::delete('/cart-items/{id}', [CartItemController::class, 'destroy']);
+Route::post('/orders/multi-shop', [OrderController::class, 'storeMultiShop']);
+Route::get('/orders/multi-shop', function() {
+    return response()->json(['error' => 'GET not supported for this route. Use POST.'], 405);
+});
+
 Route::get('/shops', [ShopController::class, 'index']);
+Route::get('/shops/many', [ShopController::class, 'getMany']);
 Route::post('/shops', [ShopController::class, 'store']);
 Route::delete('/shops/{id}', function($id) {
     $shop = \DB::table('shops')->where('ShopID', $id);
@@ -83,3 +100,5 @@ Route::get('/check-user/{id}', function($id) {
 
 // Get average ratings for reviews
 Route::get('/reviews/average-ratings', [ReviewController::class, 'averageRatings']);
+Route::get('/cart-items', [CartItemController::class, 'index']);
+Route::patch('/cart-items/{id}', [CartItemController::class, 'update']);

@@ -16,12 +16,15 @@ return new class extends Migration
             $table->foreignId('AddressID')
                   ->constrained('addresses', 'AddressID')
                   ->onDelete('cascade');
+            $table->foreignId('ShopID')
+                    ->constrained('shops', 'ShopID')
+                    ->onDelete('cascade');
             $table->decimal('TotalAmount', 10, 2);
             $table->enum('Status', ['ToPay', 'ToShip', 'Delivering', 'Completed']);
             $table->date('OrderDate');
             $table->enum('PaymentMethod', ['CoD', 'EWallet']);
             $table->string('BuyerNote');
-            $table->enum('PaymentStatus', ['Pending', 'Paid', 'Failed'])->default('Pending');
+            $table->enum('PaymentStatus', ['Pending', 'Confirmed', 'Failed'])->default('Pending');
             $table->boolean('IsPickUp')->default(True);
             $table->string('PickUpTime');
             $table->date('CompletionDate')->nullable();

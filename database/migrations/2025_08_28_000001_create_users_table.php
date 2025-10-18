@@ -25,23 +25,6 @@ return new class extends Migration
         DB::statement("ALTER TABLE users AUTO_INCREMENT = 10000000;");
 
 
-        Schema::create('shops', function (Blueprint $table) {
-        $table->id('ShopID');
-        $table->foreignId('UserID')
-            ->constrained('users', 'UserID') 
-            ->onDelete('cascade');
-        $table->string('ShopName');
-        $table->string('ShopDescription');
-        $table->string('LogoImage');
-        $table->string('BackgroundImage');
-        $table->string('Address');
-        $table->string('BusinessPermit');
-        $table->boolean('isVerified')->default(false);
-        $table->boolean('hasPhysical')->default(false);
-        $table->timestamps();
-        });
-        DB::statement("ALTER TABLE shops AUTO_INCREMENT = 20000000;");
-
 
         Schema::create('admins', function (Blueprint $table) {
             $table->id('AdminID');

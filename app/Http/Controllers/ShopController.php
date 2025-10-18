@@ -43,4 +43,14 @@ class ShopController extends Controller
 		]);
 		return response()->json(['success' => true, 'shop' => $shop], 201);
 	}
+
+	// GET /api/shops?ids=1,2,3
+	public function getMany(Request $request)
+	{
+		$ids = $request->query('ids');
+		if (!$ids) return response()->json([]);
+		$idArr = explode(',', $ids);
+		$shops = \App\Models\Shop::whereIn('ShopID', $idArr)->get();
+		return response()->json($shops);
+	}
 }

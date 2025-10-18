@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import FloatingChatButton from "../Components/FloatingChatButton";
 import Header from "@/Components/Header";
 import AuthModal from "@/Components/AuthModal";
+import ProductCard from "../Components/ProductCard";
+import Toast from "../Components/Toast";
 import "../../css/app.css";
 // import Footer from "@/Components/Footer";
 
@@ -32,6 +34,8 @@ const Landing = () => {
     const [modalTab, setModalTab] = useState('login'); // 'login' or 'register'
     const [hoveredIdx, setHoveredIdx] = useState(null);
     const [productsByCategory, setProductsByCategory] = useState({});
+    // Toast state for notifications
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
     // Fetch products from API and organize by category
     useEffect(() => {
@@ -76,7 +80,7 @@ const Landing = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             setActiveIdx(idx => (idx + 1) % categories.length);
-        }, 2500);
+        }, 10000);
         return () => clearInterval(interval);
     }, []);
 
@@ -99,6 +103,13 @@ const Landing = () => {
 
     return (
         <>
+            {toast.show && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast({ ...toast, show: false })}
+                />
+            )}
             <Header />
             {/* Hero Section */}
             <section className="heroSection">
@@ -161,56 +172,17 @@ const Landing = () => {
                     maxWidth: '1200px',
                 }}>
                     {(productsByCategory[activeCategory.slug] || []).map((item, idx) => {
-                        const isHovered = hoveredIdx === idx;
-                        const rating = item.avgRating != null ? item.avgRating : 0;
-                        let sold = 0;
-                        if (item.BoughtBy) {
-                            try {
-                                const arr = typeof item.BoughtBy === 'string' ? JSON.parse(item.BoughtBy) : item.BoughtBy;
-                                if (Array.isArray(arr)) sold = arr.length;
-                            } catch (e) { sold = 0; }
-                        }
                         return (
-                            <div
+                            <ProductCard
                                 key={item.ProductID || item.name}
-                                className={`product-card${isHovered ? ' product-card--hovered' : ''}`}
-                                style={{
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    width: '100%',
-                                    height: '100%',
-                                    boxSizing: 'border-box',
-                                    margin: 0,
-                                }}
+                                product={item}
+                                isHovered={hoveredIdx === idx}
                                 onMouseEnter={() => setHoveredIdx(idx)}
                                 onMouseLeave={() => setHoveredIdx(null)}
                                 onClick={() => window.location.href = `/product/${item.ProductID || ''}`}
-                            >
-                                <img
-                                    src={item.Image || item.image}
-                                    alt={item.ProductName || item.name}
-                                    className="product-image"
-                                    style={{
-                                        display: 'block',
-                                        margin: '0 auto',
-                                    }}
-                                />
-                                <div className="product-name" style={{textAlign: 'center', width: '100%'}}>{item.ProductName || item.name}</div>
-                                <div className={`product-info${isHovered ? ' product-info--hidden' : ''}`} style={{width: '100%', textAlign: 'center'}}>
-                                    <div className="product-price">₱{(item.Price || 0).toLocaleString()}</div>
-                                    <div className="product-rating" style={{justifyContent: 'center'}}>
-                                        <span className="product-rating-stars" style={{fontWeight:600}}>
-                                            ★{rating} <span style={{color:'#888',margin:'0 6px'}}>|</span> <span className="product-sold">{sold} Sold</span>
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className={`product-buttons${isHovered ? ' product-buttons--visible' : ''}`} style={{width: '100%', textAlign: 'center'}}>
-                                    <button className="add-to-cart-btn" style={{marginBottom: '6px'}} onClick={e => e.stopPropagation()}>Add to Cart</button>
-                                    <button className="buy-now-btn" onClick={e => e.stopPropagation()}>Buy Now</button>
-                                </div>
-                            </div>
+                                style={{textAlign: 'center', width: '100%'}}
+                                setToast={setToast}
+                            />
                         );
                     })}
                 </div>

@@ -95,17 +95,36 @@ const ProductDetails = () => {
         </div>
         {/* Secondary Card: Description & Shop Info */}
         <div style={{ maxWidth: 1100, margin: '2rem auto 0 auto', background: '#fff', borderRadius: '1.2rem', boxShadow: '0 2px 16px rgba(44,204,113,0.07)', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div style={{ fontWeight: 700, fontSize: '1.25rem', marginBottom: '0.7rem', color: '#222' }}>Description</div>
-          <div style={{ color: '#444', fontSize: '1.1rem', marginBottom: '1.2rem' }}>{product.description}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.2rem', marginTop: '1.2rem' }}>
-            {product.shopLogo && (
-              <img src={product.shopLogo} alt="Shop Logo" style={{ width: 54, height: 54, borderRadius: '50%', border: '2px solid #2ecc71', objectFit: 'cover', background: '#eaeaea' }} />
-            )}
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#222' }}>{product.shopName}</div>
-              <div style={{ color: '#888', fontSize: '1rem' }}>Owner: {product.ownerName}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.2rem', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 70 }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', border: '2px solid #2ecc71', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 2, overflow: 'hidden' }}>
+                {product.shopLogo ? (
+                  <img src={product.shopLogo} alt="Shop Logo" style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover' }} />
+                ) : (
+                  <span style={{ color: '#2ecc71', fontWeight: 600, fontSize: 16 }}>Shop</span>
+                )}
+              </div>
+            </div>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ fontWeight: 700, fontSize: '1.15rem', color: '#222' }}>{product.shopName}</div>
+              <div style={{ color: '#aaa', fontSize: '1rem', marginBottom: 8 }}>Owner: {product.ownerName}</div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', marginLeft: 12 }}>
+              <button
+                onClick={() => window.location.href = `/shop/${product.shopId}`}
+                style={{ background: '#2ecc71', color: '#fff', fontWeight: 700, fontSize: '0.95rem', border: '2px solid #2ecc71', borderRadius: 8, padding: '0.5rem 1.2rem', cursor: 'pointer', transition: 'background 0.2s' }}
+              >
+                Visit Shop
+              </button>
+              <button
+                style={{ background: '#fff', color: '#2ecc71', fontWeight: 700, fontSize: '0.95rem', border: '2px solid #2ecc71', borderRadius: 8, padding: '0.5rem 1.2rem', cursor: 'pointer', transition: 'background 0.2s' }}
+              >
+                Chat Now
+              </button>
             </div>
           </div>
+          <div style={{ fontWeight: 700, fontSize: '1.25rem', color: '#222' }}>Description</div>
+          <div style={{ color: '#444', fontSize: '1.1rem', marginBottom: '1.2rem' }}>{product.description}</div>
         </div>
         {/* Recent Reviews Card */}
         <div style={{ maxWidth: 1100, margin: '2rem auto 0 auto', background: '#fff', borderRadius: '1.2rem', boxShadow: '0 2px 16px rgba(44,204,113,0.07)', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

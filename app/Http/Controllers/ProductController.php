@@ -88,6 +88,7 @@ class ProductController extends Controller {
             'shopName' => $shopName,
             'shopLogo' => $shopLogo,
             'ownerName' => $ownerName,
+            'shopId' => $product->ShopID,
         ];
         return response()->json($productData);
     }

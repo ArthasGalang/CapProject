@@ -1,3 +1,48 @@
+/* Toast/Snackbar Notification */
+.shop-toast {
+	position: fixed;
+	left: 50%;
+	transform: translateX(-50%);
+	background: var(--color-primary, #28b864);
+	color: #fff;
+	padding: 1rem 2.2rem 1rem 1.2rem;
+	border-radius: 1.2rem;
+	box-shadow: 0 4px 24px rgba(44,204,113,0.18);
+	font-size: 1.08rem;
+	font-weight: 600;
+	z-index: 9999;
+	display: flex;
+	align-items: center;
+	gap: 1.2rem;
+}
+.shop-toast--top {
+	top: 32px;
+	animation: shop-toast-in-top 0.22s cubic-bezier(.4,1.2,.4,1);
+}
+.shop-toast--error {
+	background: #e74c3c;
+}
+.shop-toast--success {
+	background: var(--color-primary, #28b864);
+}
+.shop-toast-close {
+	background: none;
+	border: none;
+	color: #fff;
+	font-size: 1.3rem;
+	font-weight: 700;
+	cursor: pointer;
+	margin-left: 0.7rem;
+	opacity: 0.7;
+	transition: opacity 0.15s;
+}
+.shop-toast-close:hover {
+	opacity: 1;
+}
+@keyframes shop-toast-in-top {
+	from { opacity: 0; transform: translateX(-50%) translateY(-30px); }
+	to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
 .shop-sidebar__item--active-min {
 	background: #f3f4f6;
 	color: var(--color-primary);
