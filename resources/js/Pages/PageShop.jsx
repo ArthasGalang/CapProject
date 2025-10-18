@@ -21,6 +21,13 @@ const dummyProducts = [
     }
 ];
 import React from "react";
+let usePage;
+try {
+    // Only import if available (Inertia context)
+    usePage = require('@inertiajs/inertia-react').usePage;
+} catch (e) {
+    usePage = null;
+}
 // SVG icons for social media
 const FacebookIcon = () => (
     <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="#4267B2"/><path d="M20.5 10.5h-2c-1.1 0-2 .9-2 2v2h-2v2.5h2v6h2.5v-6h2l.5-2.5h-2.5v-1.5c0-.3.2-.5.5-.5h2V10.5z" fill="#fff"/></svg>
@@ -50,28 +57,121 @@ const placeholderShop = {
 };
 
 const ShopPage = () => {
-    const shop = placeholderShop;
+    let shopId = null;
+    if (usePage) {
+        try {
+            const { props } = usePage();
+            shopId = props.shopId;
+        } catch (e) {
+            shopId = null;
+        }
+    }
+    // Fallback: parse from URL if not in Inertia context
+    if (!shopId && typeof window !== 'undefined') {
+        const match = window.location.pathname.match(/\/shop\/(\d+)/);
+        if (match) shopId = match[1];
+    }
+    const [shop, setShop] = React.useState(null);
+    React.useEffect(() => {
+        if (!shopId) return;
+        fetch(`/api/shops?id=${shopId}`)
+            .then(res => res.json())
+            .then(data => {
+                // If backend returns array, find the correct shop
+                let s = Array.isArray(data) ? data.find(x => x.ShopID == shopId || x.id == shopId) : data;
+                setShop(s || null);
+            })
+            .catch(() => setShop(null));
+    }, [shopId]);
+    // Use placeholder for missing fields
+    const shopData = shop || placeholderShop;
+    // Products for this shop
+    const [products, setProducts] = React.useState(null); // null = not loaded yet, [] = loaded empty
+    const [loadingProducts, setLoadingProducts] = React.useState(false);
+    const [hoveredIdx, setHoveredIdx] = React.useState(null);
+    const [currentPage, setCurrentPage] = React.useState(1);
+    const PRODUCTS_PER_PAGE = 8;
+
+    React.useEffect(() => {
+        // If no shopId, don't fetch and keep placeholder products
+        if (!shopId) {
+            setProducts(null);
+            setLoadingProducts(false);
+            return;
+        }
+        setLoadingProducts(true);
+        fetch(`/api/products?shopId=${shopId}`)
+            .then(res => res.json())
+            .then(async data => {
+                // Normalize response to array
+                let arr = [];
+                if (Array.isArray(data)) arr = data;
+                else if (Array.isArray(data.data)) arr = data.data;
+                else if (Array.isArray(data.products)) arr = data.products;
+                // Ensure only products for this shop are used (API may ignore shopId param)
+                // Log for debugging
+                console.log('Fetched products:', arr, 'Current shopId:', shopId);
+                // Compare as numbers for ShopID
+                const shopIdNum = Number(shopId);
+                const filtered = arr.filter(p => {
+                    const candidate = p.ShopID || p.shopId || p.shop_id || p.Shop || p.shop || p.UserShopID || p.seller_id;
+                    if (candidate === undefined || candidate === null) return false;
+                    // Compare as number if possible
+                    return Number(candidate) === shopIdNum;
+                });
+                // Fetch average ratings for these products
+                const ids = filtered.map(p => p.ProductID).join(',');
+                let ratingsMap = {};
+                if (ids) {
+                    try {
+                        const ratingsRes = await fetch(`/api/reviews/average-ratings?productIds=${ids}`);
+                        ratingsMap = await ratingsRes.json();
+                    } catch (e) { ratingsMap = {}; }
+                }
+                // Attach avgRating to each product
+                filtered.forEach(p => {
+                    p.avgRating = ratingsMap[p.ProductID]?.avg || null;
+                });
+                setProducts(filtered);
+                setLoadingProducts(false);
+            })
+            .catch(() => {
+                setProducts([]);
+                setLoadingProducts(false);
+            });
+    }, [shopId]);
+    // Fix logo and background image paths
+    let logoUrl = shopData.LogoImage;
+    if (logoUrl && typeof logoUrl === 'string' && !logoUrl.startsWith('http')) {
+        logoUrl = `/storage/${logoUrl.replace(/^storage[\\/]+/, '')}`;
+    }
+    if (!logoUrl) logoUrl = 'https://via.placeholder.com/120x120?text=Logo';
+    let bgUrl = shopData.BackgroundImage;
+    if (bgUrl && typeof bgUrl === 'string' && !bgUrl.startsWith('http')) {
+        bgUrl = `/storage/${bgUrl.replace(/^storage[\\/]+/, '')}`;
+    }
+    if (!bgUrl) bgUrl = 'https://via.placeholder.com/600x200?text=Shop+Banner';
     return (
         <>
             <Header />
             <div style={{ maxWidth: '1400px', margin: '40px auto', background: '#fff', borderRadius: '18px', boxShadow: '0 10px 48px rgba(0,0,0,0.13)', overflow: 'hidden' }}>
                 {/* Banner */}
-                <div style={{ width: '100%', height: '200px', background: `url(${shop.BackgroundImage}) center/cover`, position: 'relative' }}>
-                    <img src={shop.LogoImage} alt="Shop Logo" style={{ position: 'absolute', left: '32px', bottom: '-60px', width: '120px', height: '120px', borderRadius: '50%', border: '4px solid #fff', boxShadow: '0 2px 12px rgba(0,0,0,0.10)' }} />
+                <div style={{ width: '100%', height: '200px', background: `url(${bgUrl}) center/cover`, position: 'relative' }}>
+                    <img src={logoUrl} alt="Shop Logo" style={{ position: 'absolute', left: '32px', bottom: '-60px', width: '120px', height: '120px', borderRadius: '50%', border: '4px solid #fff', boxShadow: '0 2px 12px rgba(0,0,0,0.10)' }} />
                 </div>
                 <div style={{ padding: '80px 40px 32px 40px' }}>
-                    <h1 style={{ fontSize: '2.2rem', fontWeight: 700, marginBottom: '8px', color: '#222' }}>{shop.ShopName}</h1>
+                    <h1 style={{ fontSize: '2.2rem', fontWeight: 700, marginBottom: '8px', color: '#222' }}>{shopData.ShopName}</h1>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '18px', marginBottom: '18px' }}>
-                        <span style={{ fontWeight: 500, color: '#2ECC71', fontSize: '1.1rem' }}>{shop.isVerified ? 'Verified' : 'Unverified'}</span>
-                        <span style={{ fontWeight: 500, color: '#888', fontSize: '1rem' }}>{shop.hasPhysical ? 'Physical Store Available' : 'Online Only'}</span>
-                        <span style={{ fontWeight: 500, color: '#888', fontSize: '1rem' }}>Business Permit: {shop.BusinessPermit}</span>
+                        <span style={{ fontWeight: 500, color: '#2ECC71', fontSize: '1.1rem' }}>{shopData.isVerified ? 'Verified' : 'Unverified'}</span>
+                        <span style={{ fontWeight: 500, color: '#888', fontSize: '1rem' }}>{shopData.hasPhysical ? 'Physical Store Available' : 'Online Only'}</span>
+                        <span style={{ fontWeight: 500, color: '#888', fontSize: '1rem' }}>Business Permit: {shopData.BusinessPermit}</span>
                     </div>
-                    <div style={{ marginBottom: '18px', color: '#555', fontSize: '1.08rem' }}>{shop.ShopDescription}</div>
+                    <div style={{ marginBottom: '18px', color: '#555', fontSize: '1.08rem' }}>{shopData.ShopDescription}</div>
                     <div style={{ marginBottom: '8px', color: '#444', fontWeight: 500 }}>
-                        <span>Address: {shop.Address}</span>
+                        <span>Address: {shopData.Address}</span>
                     </div>
                     <div style={{ marginBottom: '8px', color: '#444', fontWeight: 500 }}>
-                        <span>Owner UserID: {shop.UserID}</span>
+                        <span>Owner UserID: {shopData.UserID}</span>
                     </div>
                     <div style={{ marginBottom: '8px', display: 'flex', gap: '18px', alignItems: 'center' }}>
                         <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" title="Facebook"><FacebookIcon /></a>
@@ -86,32 +186,47 @@ const ShopPage = () => {
                 <h2 style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '18px', color: '#222' }}>Recent Reviews</h2>
                 {/* Carousel for reviews */}
                 {(() => {
-                    const reviews = [
-                        {
-                            name: 'Juan Dela Cruz',
-                            rating: '★★★★★',
-                            text: 'Great shop! Fast delivery and friendly staff. Highly recommended.'
-                        },
-                        {
-                            name: 'Maria Santos',
-                            rating: '★★★★☆',
-                            text: 'Good quality products. Will order again!'
+                    // Aggregate all reviews from all products
+                    let allReviews = [];
+                    dummyProducts.forEach(product => {
+                        if (product.reviews && Array.isArray(product.reviews)) {
+                            product.reviews.forEach(r => {
+                                allReviews.push({
+                                    ...r,
+                                    productName: product.ProductName || product.name || 'Product'
+                                });
+                            });
                         }
-                    ];
+                    });
+                    // Sort by date if available, else as is (most recent first)
+                    allReviews = allReviews.sort((a, b) => {
+                        if (a.date && b.date) return new Date(b.date) - new Date(a.date);
+                        return 0;
+                    });
+                    const reviewsToShow = allReviews.slice(0, 5);
                     const [current, setCurrent] = React.useState(0);
                     React.useEffect(() => {
+                        if (reviewsToShow.length <= 1) return;
                         const timer = setInterval(() => {
-                            setCurrent(prev => (prev + 1) % reviews.length);
+                            setCurrent(prev => (prev + 1) % reviewsToShow.length);
                         }, 3000);
                         return () => clearInterval(timer);
-                    }, [reviews.length]);
-                    const review = reviews[current];
+                    }, [reviewsToShow.length]);
+                    if (reviewsToShow.length === 0) {
+                        return (
+                            <div style={{ textAlign: 'center', color: '#888', fontSize: '1.1rem', minHeight: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                No recent reviews
+                            </div>
+                        );
+                    }
+                    const review = reviewsToShow[current] || reviewsToShow[0];
                     return (
                         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '120px', transition: 'all 0.5s' }}>
                             <div style={{ background: '#f8f8f8', borderRadius: '12px', padding: '24px 32px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', minWidth: '340px', maxWidth: '600px', width: '100%', textAlign: 'left' }}>
                                 <div style={{ fontWeight: 600, fontSize: '1.08rem', marginBottom: '6px' }}>{review.name}</div>
                                 <div style={{ color: '#2ECC71', fontWeight: 500, marginBottom: '4px' }}>{review.rating}</div>
                                 <div style={{ color: '#444' }}>{review.text}</div>
+                                <div style={{ color: '#888', fontSize: '0.95rem', marginTop: '8px' }}>Product: {review.productName}</div>
                             </div>
                         </div>
                     );
@@ -120,7 +235,7 @@ const ShopPage = () => {
             {/* Product List Section */}
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', marginTop: '32px', maxWidth: '1400px', width: '95%', marginLeft: 'auto', marginRight: 'auto' }}>
                 {/* Filter Sidebar */}
-                <aside style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', padding: '32px 24px', minWidth: '260px', maxWidth: '320px', marginRight: '32px', height: '820px' }}>
+                <aside style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', padding: '32px 24px', minWidth: '260px', maxWidth: '320px', marginRight: '32px', height: '750px' }}>
                     <h3 style={{ fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '24px' }}>Filters</h3>
                     {/* Category */}
                     <div style={{ marginBottom: '20px' }}>
@@ -188,48 +303,115 @@ const ShopPage = () => {
                 </aside>
                 {/* Main Card */}
                 <div style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', padding: '40px 32px 32px 32px', minHeight: '120px', width: '100%', maxHeight: '845px', overflowY: 'auto' }}>
-                    <h1 style={{ textAlign: 'left', fontSize: '2rem', fontWeight: 600, margin: 0, color: '#222' }}> Shop Products</h1>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px' }}>
+                        <h1 style={{ textAlign: 'left', fontSize: '2rem', fontWeight: 600, margin: 0, color: '#222' }}>Shop Products</h1>
+                        <span style={{ fontSize: '1.08rem', color: '#888', fontWeight: 400, marginLeft: '4px' }}>
+                            {loadingProducts ? '' : ((products ? products.length : dummyProducts.length) + ' product' + ((products ? products.length : dummyProducts.length) === 1 ? '' : 's'))}
+                        </span>
+                    </div>
                     <div style={{ marginTop: '32px', display: 'flex', flexWrap: 'wrap', gap: '32px', justifyContent: 'center' }}>
-                        {dummyProducts.map((product, idx) => {
-                            const rating = 4.7;
-                            const sold = 320;
-                            return (
-                                <div
-                                    key={product.ProductID || product.name}
-                                    className={`product-card`}
-                                    style={{
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        width: '100%',
-                                        height: '100%',
-                                        boxSizing: 'border-box',
-                                        margin: 0,
-                                        position: 'relative',
-                                    }}
-                                >
-                                    <img
-                                        src={product.Image || product.image || "https://via.placeholder.com/90x90?text=Product"}
-                                        alt={product.ProductName || product.name}
-                                        className="product-image"
-                                    />
-                                    <div className="product-name">{product.ProductName || product.name}</div>
-                                    <div className={`product-info`}> 
-                                        <div className="product-price">₱{(product.Price || product.price || 0).toLocaleString()}</div>
-                                        <div className="product-rating">
-                                            <span className="product-rating-stars" style={{fontWeight:600}}>
-                                                ★{rating} <span style={{color:'#888',margin:'0 6px'}}>|</span> <span className="product-sold">{sold} Sold</span>
-                                            </span>
+                        {loadingProducts ? (
+                            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '220px' }}>
+                                <div className="spinner" style={{ width: 48, height: 48, border: '6px solid #eee', borderTop: '6px solid #2ECC71', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                                <style>{`@keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }`}</style>
+                            </div>
+                        ) : (products && products.length === 0) ? (
+                            <div style={{ width: '100%', textAlign: 'center', padding: '40px 0', color: '#888' }}>No products found.</div>
+                        ) : (() => {
+                            const allProducts = products || dummyProducts;
+                            const totalPages = Math.ceil(allProducts.length / PRODUCTS_PER_PAGE);
+                            const startIdx = (currentPage - 1) * PRODUCTS_PER_PAGE;
+                            const pageProducts = allProducts.slice(startIdx, startIdx + PRODUCTS_PER_PAGE);
+                            return <>
+                                {pageProducts.map((product, idx) => {
+                                    const rating = product.avgRating != null ? product.avgRating : 0;
+                                    let sold = 0;
+                                    if (product.BoughtBy) {
+                                        try {
+                                            const arr = typeof product.BoughtBy === 'string' ? JSON.parse(product.BoughtBy) : product.BoughtBy;
+                                            if (Array.isArray(arr)) sold = arr.length;
+                                        } catch (e) { sold = 0; }
+                                    }
+                                    const globalIdx = startIdx + idx;
+                                    return (
+                                        <div
+                                            key={product.ProductID || product.name}
+                                            className={`product-card${hoveredIdx === globalIdx ? ' product-card--hovered' : ''}`}
+                                            style={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                width: '100%',
+                                                height: '100%',
+                                                boxSizing: 'border-box',
+                                                margin: 0,
+                                                position: 'relative',
+                                                cursor: 'pointer'
+                                            }}
+                                            onMouseEnter={() => setHoveredIdx(globalIdx)}
+                                            onMouseLeave={() => setHoveredIdx(null)}
+                                            onClick={() => window.location.href = `/product/${product.ProductID || ''}`}
+                                        >
+                                            <img
+                                                src={product.Image || product.image || "https://via.placeholder.com/90x90?text=Product"}
+                                                alt={product.ProductName || product.name}
+                                                className="product-image"
+                                                style={{ display: 'block', margin: '0 auto' }}
+                                            />
+                                            <div className="product-name" style={{textAlign: 'center', width: '100%'}}>{product.ProductName || product.name}</div>
+                                            <div className={`product-info${hoveredIdx === globalIdx ? ' product-info--hidden' : ''}`} style={{width: '100%', textAlign: 'center'}}>
+                                                <div className="product-price">₱{(product.Price || product.price || 0).toLocaleString()}</div>
+                                                <div className="product-rating" style={{justifyContent: 'center'}}>
+                                                    <span className="product-rating-stars" style={{fontWeight:600}}>
+                                                        ★{rating} <span style={{color:'#888',margin:'0 6px'}}>|</span> <span className="product-sold">{sold} Sold</span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className={`product-buttons${hoveredIdx === globalIdx ? ' product-buttons--visible' : ''}`} style={{width: '100%', textAlign: 'center'}}>
+                                                <button className="add-to-cart-btn" style={{marginBottom: '6px'}} onClick={e => e.stopPropagation()}>Add to Cart</button>
+                                                <button className="buy-now-btn" onClick={e => e.stopPropagation()}>Buy Now</button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                {/* Paginator UI */}
+                                {totalPages > 1 && (
+                                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 32 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                            <button
+                                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                                disabled={currentPage === 1}
+                                                style={{ background: 'none', border: 'none', color: '#2ECC71', fontSize: 24, cursor: currentPage === 1 ? 'default' : 'pointer', opacity: currentPage === 1 ? 0.4 : 1 }}
+                                                aria-label="Previous page"
+                                            >&#x2039;</button>
+                                            {/* Dots */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                {Array.from({ length: totalPages }).map((_, i) => (
+                                                    <span key={i} style={{
+                                                        width: 12,
+                                                        height: 12,
+                                                        borderRadius: '50%',
+                                                        background: i + 1 === currentPage ? '#2ECC71' : '#ddd',
+                                                        display: 'inline-block',
+                                                        transition: 'background 0.2s'
+                                                    }} />
+                                                ))}
+                                            </div>
+                                            <button
+                                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                                disabled={currentPage === totalPages}
+                                                style={{ background: 'none', border: 'none', color: '#2ECC71', fontSize: 24, cursor: currentPage === totalPages ? 'default' : 'pointer', opacity: currentPage === totalPages ? 0.4 : 1 }}
+                                                aria-label="Next page"
+                                            >&#x203A;</button>
+                                        </div>
+                                        <div style={{ color: '#2ECC71', fontWeight: 600, marginTop: 8, fontSize: '1.1rem' }}>
+                                            Page {currentPage} of {totalPages}
                                         </div>
                                     </div>
-                                    <div className={`product-buttons`}> 
-                                        <button className="add-to-cart-btn" style={{marginRight:'8px'}}>Add to Cart</button>
-                                        <button className="buy-now-btn">Buy Now</button>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                                )}
+                            </>;
+                        })()}
                     </div>
                 </div>
             </div>

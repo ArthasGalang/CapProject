@@ -18,6 +18,10 @@ Route::get('/product', function () {
     return Inertia::render('ProductDetails');
 });
 
+Route::get('/product/{ProductID}', function ($ProductID) {
+    return Inertia::render('ProductDetails', ['ProductID' => $ProductID]);
+});
+
 Route::get('/cart', function () {
     return Inertia::render('Cart');
 });
@@ -50,8 +54,9 @@ Route::get('/account', function () {
     return Inertia::render('Account');
 });
 
-Route::get('/shop', function () {
-    return Inertia::render('PageShop');
+
+Route::get('/shop/{id}', function ($id) {
+    return Inertia::render('PageShop', ['shopId' => $id]);
 });
 
 

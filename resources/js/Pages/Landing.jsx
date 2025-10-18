@@ -35,28 +35,41 @@ const Landing = () => {
 
     // Fetch products from API and organize by category
     useEffect(() => {
-        fetch('/api/products')
-            .then(res => res.json())
-            .then(data => {
-                // Group products by category slug
-                const grouped = {};
-                data.forEach(product => {
-                    // Find category slug by name
-                    const cat = categories.find(c => c.name.toLowerCase() === (product.CategoryName || product.category)?.toLowerCase());
-                    if (cat) {
-                        if (!grouped[cat.slug]) grouped[cat.slug] = [];
-                        grouped[cat.slug].push(product);
-                    }
-                });
-                // For each category, randomize and limit to 10 products
-                Object.keys(grouped).forEach(slug => {
-                    grouped[slug] = grouped[slug]
-                        .sort(() => Math.random() - 0.5)
-                        .slice(0, 10);
-                });
-                setProductsByCategory(grouped);
-            })
-            .catch(() => setProductsByCategory({}));
+    fetch('/api/products?limit=9999')
+        .then(res => res.json())
+        .then(async data => {
+            // Fetch average ratings for all products
+            const ids = data.map(p => p.ProductID).join(',');
+            let ratingsMap = {};
+            if (ids) {
+                try {
+                    const ratingsRes = await fetch(`/api/reviews/average-ratings?productIds=${ids}`);
+                    ratingsMap = await ratingsRes.json();
+                } catch (e) { ratingsMap = {}; }
+            }
+            // Attach avgRating to each product
+            data.forEach(p => {
+                p.avgRating = ratingsMap[p.ProductID]?.avg || null;
+            });
+            // Group products by category slug
+            const grouped = {};
+            data.forEach(product => {
+                // Find category slug by name
+                const cat = categories.find(c => c.name.toLowerCase() === (product.CategoryName || product.category)?.toLowerCase());
+                if (cat) {
+                    if (!grouped[cat.slug]) grouped[cat.slug] = [];
+                    grouped[cat.slug].push(product);
+                }
+            });
+            // For each category, randomize and limit to 10 products
+            Object.keys(grouped).forEach(slug => {
+                grouped[slug] = grouped[slug]
+                    .sort(() => Math.random() - 0.5)
+                    .slice(0, 10);
+            });
+            setProductsByCategory(grouped);
+        })
+        .catch(() => setProductsByCategory({}));
     }, []);
 
     // Auto-move carousel every 2.5 seconds
@@ -149,8 +162,14 @@ const Landing = () => {
                 }}>
                     {(productsByCategory[activeCategory.slug] || []).map((item, idx) => {
                         const isHovered = hoveredIdx === idx;
-                        const rating = 4.7;
-                        const sold = 320;
+                        const rating = item.avgRating != null ? item.avgRating : 0;
+                        let sold = 0;
+                        if (item.BoughtBy) {
+                            try {
+                                const arr = typeof item.BoughtBy === 'string' ? JSON.parse(item.BoughtBy) : item.BoughtBy;
+                                if (Array.isArray(arr)) sold = arr.length;
+                            } catch (e) { sold = 0; }
+                        }
                         return (
                             <div
                                 key={item.ProductID || item.name}

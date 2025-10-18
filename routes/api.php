@@ -13,6 +13,7 @@ use App\Http\Controllers\UsersController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\ReviewController;
 
 
 Route::post('/register', [UsersController::class, 'register']);
@@ -21,6 +22,8 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::get('/products', [ProductController::class, 'index']);
 Route::post('/products', [ProductController::class, 'store']);
+
+Route::get('/product/{ProductID}', [ProductController::class, 'show']);
 Route::get('/shops', [ShopController::class, 'index']);
 Route::post('/shops', [ShopController::class, 'store']);
 Route::delete('/shops/{id}', function($id) {
@@ -77,3 +80,6 @@ Route::get('/check-user/{id}', function($id) {
     $user = \DB::table('users')->where('UserID', $id)->first();
     return response()->json(['exists' => !!$user]);
 });
+
+// Get average ratings for reviews
+Route::get('/reviews/average-ratings', [ReviewController::class, 'averageRatings']);
