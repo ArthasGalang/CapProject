@@ -7,7 +7,7 @@ import ShopSidebar from "@/Components/ShopSidebar";
 const ShopDashboard = () => (
   <>
     <Header />
-    <main style={{ background: '#f7f8fa', minHeight: '70vh', padding: '2rem 0' }}>
+    <main style={{ background: '#f7f8fb', minHeight: '70vh', padding: '2rem 0' }}>
       <div style={{ maxWidth: 1500, margin: '0 auto', display: 'flex', gap: '2.5rem' }}>
         {/* Sidebar */}
         <ShopSidebar active="dashboard" />
