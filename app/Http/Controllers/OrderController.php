@@ -8,6 +8,22 @@ use App\Models\OrderItem;
 
 class OrderController extends Controller
 {
+    // Get authenticated user's orders with items and products
+    public function userOrders(Request $request)
+    {
+        // Accept UserID from query param if not authenticated
+        $user = $request->user();
+        $userId = $user ? $user->UserID : $request->query('user_id');
+        if (!$userId) {
+            return response()->json(['error' => 'UserID required'], 400);
+        }
+        $orders = \App\Models\Order::where('UserID', $userId)
+            ->with(['orderItems.product'])
+            ->orderBy('OrderDate', 'desc')
+            ->get();
+        return response()->json(['orders' => $orders]);
+    }
+
     public function storeMultiShop(Request $request)
     {
         $orders = $request->input('orders');
@@ -15,6 +31,7 @@ class OrderController extends Controller
             return response()->json(['success' => false, 'message' => 'No orders provided.'], 400);
         }
         $createdOrders = [];
+        $cartItemIdsToDelete = [];
         foreach ($orders as $orderData) {
             $order = Order::create([
                 'ShopID' => $orderData['ShopID'],
@@ -37,8 +54,15 @@ class OrderController extends Controller
                     'Quantity' => $item['Quantity'],
                     'Subtotal' => $item['Subtotal'],
                 ]);
+                if (isset($item['CartItemID'])) {
+                    $cartItemIdsToDelete[] = $item['CartItemID'];
+                }
             }
             $createdOrders[] = $order->OrderID;
+        }
+        // Remove posted cart items from cart_items table
+        if (!empty($cartItemIdsToDelete)) {
+            \App\Models\CartItem::whereIn('CartItemID', $cartItemIdsToDelete)->delete();
         }
         return response()->json(['success' => true, 'order_ids' => $createdOrders]);
     }

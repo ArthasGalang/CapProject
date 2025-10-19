@@ -156,6 +156,7 @@ const CheckoutPage = () => {
                 pickUpTime = 'N/A';
             }
             const orderItems = items.map(item => ({
+                CartItemID: item.CartItemID,
                 ProductID: item.ProductID,
                 Quantity: item.Quantity,
                 Subtotal: item.Subtotal
@@ -205,7 +206,7 @@ const CheckoutPage = () => {
         if (result.success) {
             console.error('Order placed successfully!', result);
             toast.success('Order placed successfully!');
-            // Optionally redirect or clear cart
+            window.location.href = '/account';
         } else {
             // Log fetch response status and text for deeper debugging
             console.error('Order failed response:', result);

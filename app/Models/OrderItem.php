@@ -11,4 +11,9 @@ class OrderItem extends Model
     protected $fillable = [
         'OrderID', 'ProductID', 'Quantity', 'Subtotal'
     ];
+    // Relationship: OrderItem belongs to Product
+    public function product()
+    {
+        return $this->belongsTo(\App\Models\Product::class, 'ProductID', 'ProductID');
+    }
 }

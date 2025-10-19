@@ -11,4 +11,9 @@ class Order extends Model
     protected $fillable = [
         'ShopID', 'UserID', 'AddressID', 'TotalAmount', 'Status', 'OrderDate', 'PaymentMethod', 'BuyerNote', 'PaymentStatus', 'IsPickUp', 'PickUpTime', 'CompletionDate'
     ];
+    // Relationship: Order has many OrderItems
+    public function orderItems()
+    {
+        return $this->hasMany(\App\Models\OrderItem::class, 'OrderID', 'OrderID');
+    }
 }

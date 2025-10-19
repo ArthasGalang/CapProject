@@ -113,15 +113,24 @@ const ShopProducts = ({ shopId }) => {
               <div className="shop-products-subtitle">Manage your product listings</div>
               <div className="shop-products-header">
                 <div className="shop-products-filters">
-                  <select className="shop-products-select">
-                    <option>All Categories</option>
-                  </select>
-                  <select className="shop-products-select" style={{ minWidth: 150 }}>
-                    <option>All Status</option>
-                  </select>
-                  <select className="shop-products-select">
-                    <option>Sort By: Newest</option>
-                  </select>
+                  <div style={{ position: 'relative', display: 'inline-block', marginRight: 8 }}>
+                    <select className="shop-products-select" style={{ appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', paddingRight: '2rem' }}>
+                      <option>All Categories</option>
+                    </select>
+                    <span style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '1rem', color: '#888' }}>▼</span>
+                  </div>
+                  <div style={{ position: 'relative', display: 'inline-block', marginRight: 8 }}>
+                    <select className="shop-products-select" style={{ minWidth: 150, appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', paddingRight: '2rem' }}>
+                      <option>All Status</option>
+                    </select>
+                    <span style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '1rem', color: '#888' }}>▼</span>
+                  </div>
+                  <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <select className="shop-products-select" style={{ appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', paddingRight: '2rem' }}>
+                      <option>Sort By: Newest</option>
+                    </select>
+                    <span style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '1rem', color: '#888' }}>▼</span>
+                  </div>
                 </div>
                 <button
                   className="shop-products-add-btn"

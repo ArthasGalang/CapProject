@@ -60,6 +60,23 @@ Route::get('/account', function () {
     return Inertia::render('Account');
 });
 
+Route::get('/account/info', function () {
+    return Inertia::render('AccountInfo');
+});
+
+
+Route::get('/account/orders', function () {
+    return Inertia::render('AccountOrders');
+});
+
+Route::get('/account/addresses', function () {
+    return Inertia::render('AccountAddresses');
+});
+
+Route::get('/account/settings', function () {
+    return Inertia::render('AccountSettings');
+});
+
 
 Route::get('/shop/{id}', function ($id) {
     return Inertia::render('PageShop', ['shopId' => $id]);
@@ -101,4 +118,7 @@ Route::get('/admin/settings', function () {
 
 
 
+
+use App\Http\Controllers\AddressController;
+Route::get('/api/addresses', [AddressController::class, 'getUserAddresses']);
 Route::get('/users', [UsersController::class, 'index']);
