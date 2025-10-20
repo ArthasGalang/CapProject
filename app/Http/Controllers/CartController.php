@@ -20,4 +20,20 @@ class CartController extends Controller
             ->get();
         return response()->json($items);
     }
+
+    /**
+     * Return the number of cart items for the authenticated user.
+     */
+    public function countForAuthUser(Request $request)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['count' => 0]);
+        }
+
+        // Adjust column name if your CartItem model uses a different foreign key
+        $count = CartItem::where('UserID', $user->UserID ?? $user->id)->count();
+
+        return response()->json(['count' => $count]);
+    }
 }

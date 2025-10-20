@@ -12,6 +12,8 @@ const ProductCard = ({
     buttonProps = {},
     setToast,
 }) => {
+    // Local toast fallback when parent doesn't supply setToast
+    const [localToast, setLocalToast] = useState({ show: false, message: '', type: 'success' });
     const rating = product.avgRating != null ? product.avgRating : 0;
     let sold = 0;
     if (product.BoughtBy) {
@@ -32,6 +34,7 @@ const ProductCard = ({
         } catch (err) { userId = null; }
         if (!userId) {
             if (setToast) setToast({ show: true, message: 'You must be logged in to add to cart.', type: 'error' });
+            else setLocalToast({ show: true, message: 'You must be logged in to add to cart.', type: 'error' });
             return;
         }
         const payload = {
@@ -53,15 +56,30 @@ const ProductCard = ({
             });
             if (res.ok) {
                 if (setToast) setToast({ show: true, message: 'Added to cart!', type: 'success' });
+                else setLocalToast({ show: true, message: 'Added to cart!', type: 'success' });
+                // Notify other parts of the app (Header) to refresh cart count
+                try {
+                    window.dispatchEvent(new Event('cart-updated'));
+                } catch (e) { /* ignore */ }
             } else {
                 if (setToast) setToast({ show: true, message: 'Failed to add to cart.', type: 'error' });
+                else setLocalToast({ show: true, message: 'Failed to add to cart.', type: 'error' });
             }
         } catch (err) {
             if (setToast) setToast({ show: true, message: 'Error adding to cart.', type: 'error' });
+            else setLocalToast({ show: true, message: 'Error adding to cart.', type: 'error' });
         }
     };
     return (
-        <div
+        <>
+            {localToast.show && (
+                <Toast
+                    message={localToast.message}
+                    type={localToast.type}
+                    onClose={() => setLocalToast({ show: false, message: '', type: 'success' })}
+                />
+            )}
+            <div
             className={`product-card${isHovered ? ' product-card--hovered' : ''}`}
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
@@ -100,6 +118,7 @@ const ProductCard = ({
                 </div>
             )}
         </div>
+        </>
     );
 };
 

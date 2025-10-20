@@ -12,7 +12,7 @@ const BrowseShop = () => {
     const [scrollLoading, setScrollLoading] = React.useState(false);
     const PAGE_SIZE = 20;
 
-    // Fetch shops paginated
+    // Fetch shops paginated and resolve addresses
     const fetchShops = async (pageNum = 1, sort = sortField, isScroll = false) => {
         if (isScroll) setScrollLoading(true);
         else setLoading(true);
@@ -22,11 +22,32 @@ const BrowseShop = () => {
         if (sort === 'name-asc') data.sort((a, b) => (a.ShopName || '').localeCompare(b.ShopName || ''));
         if (sort === 'name-desc') data.sort((a, b) => (b.ShopName || '').localeCompare(a.ShopName || ''));
         if (sort === 'newest') data.sort((a, b) => (b.ShopID || 0) - (a.ShopID || 0));
+        // Fetch addresses for each shop
+        const shopsWithAddress = await Promise.all(data.map(async shop => {
+            let address = null;
+            if (shop.AddressID) {
+                try {
+                    const addrRes = await fetch(`/api/addresses/${shop.AddressID}`);
+                    if (addrRes.ok) {
+                        address = await addrRes.json();
+                        // Log the fetched address object
+                        console.log('Fetched address for shop', shop.ShopID || shop.ShopName, address);
+                    }
+                } catch (e) { /* ignore */ }
+            }
+            // Compose address string: house number and street only
+            let addressStr = 'Location Unknown';
+            if (address) {
+                const parts = [address.HouseNumber, address.Street].filter(Boolean);
+                if (parts.length > 0) addressStr = parts.join(', ');
+            }
+            return { ...shop, Address: addressStr };
+        }));
         if (data.length < PAGE_SIZE) setHasMore(false);
         if (pageNum === 1) {
-            setShops(data);
+            setShops(shopsWithAddress);
         } else {
-            setShops(prev => [...prev, ...data]);
+            setShops(prev => [...prev, ...shopsWithAddress]);
         }
         if (isScroll) setScrollLoading(false);
         else setLoading(false);

@@ -115,17 +115,26 @@ class ProductController extends Controller {
         $product->Description = $validated['Description'];
         $product->Price = $validated['Price'];
         $product->Stock = $validated['Stock'];
-        $product->Image = $request->file('Image') ? $request->file('Image')->store('products', 'public') : $request->input('Image');
+        // Store Image as a JSON array (even if only one image)
+        if ($request->file('Image')) {
+            $mainImagePath = $request->file('Image')->store('products', 'public');
+            $product->Image = json_encode([$mainImagePath]);
+        } else if ($request->input('Image')) {
+            $img = $request->input('Image');
+            $product->Image = is_array($img) ? json_encode($img) : json_encode([$img]);
+        } else {
+            $product->Image = json_encode([]);
+        }
         $product->SoldAmount = 0;
         $product->Discount = 0;
         $product->IsFeatured = false;
         $product->AdditionalImages = json_encode($request->file('AdditionalImages') ? array_map(function($file) { return $file->store('products', 'public'); }, $request->file('AdditionalImages')) : $request->input('AdditionalImages', []));
-        $product->Attributes = '';
+    $product->Attributes = json_encode([]);
         $product->PublishedAt = now()->toDateString();
         $product->IsActive = true;
         $product->Status = $validated['Status'];
-        $product->BoughtBy = '';
-        $product->Tags = '';
+        $product->BoughtBy = json_encode([]);
+        $product->Tags = json_encode([]);
         $product->save();
 
         return response()->json($product, 201);

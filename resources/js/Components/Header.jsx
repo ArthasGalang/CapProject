@@ -37,13 +37,18 @@ const Header = () => {
   // Shops state
   const [shops, setShops] = React.useState([]);
   const [shopsLoading, setShopsLoading] = React.useState(false);
+  // Track if we should reload shops after shop creation
+  const [shouldReloadShops, setShouldReloadShops] = React.useState(false);
+  // Cart items count state
+  const [cartCount, setCartCount] = React.useState(0);
+  const [cartLoading, setCartLoading] = React.useState(false);
   // User addresses state
   const [userAddresses, setUserAddresses] = React.useState([]);
   const [selectedAddressId, setSelectedAddressId] = React.useState('');
 
-  // Fetch shops for userId when shop modal opens
+  // Fetch shops for userId when shop modal opens or after shop creation
   React.useEffect(() => {
-    if (showShopModal && userId) {
+    if ((showShopModal && userId) || shouldReloadShops) {
       setShopsLoading(true);
       fetch(`http://127.0.0.1:8000/api/shops?user_id=${userId}`)
         .then(res => res.json())
@@ -64,12 +69,13 @@ const Header = () => {
           setShops([]);
           setShopsLoading(false);
         });
+      if (shouldReloadShops) setShouldReloadShops(false);
     }
     if (!showShopModal) {
       setShops([]);
       setShopsLoading(false);
     }
-  }, [showShopModal, userId]);
+  }, [showShopModal, userId, shouldReloadShops]);
 
   // Fetch addresses for current user on mount
   React.useEffect(() => {
@@ -100,6 +106,52 @@ const Header = () => {
         // Optionally handle error, but do NOT clear localStorage or reload here
       });
   }, []);
+
+  // Fetch cart items count for user
+  const fetchCartCount = React.useCallback(() => {
+    if (!userId) {
+      setCartCount(0);
+      return;
+    }
+    setCartLoading(true);
+    const token = localStorage.getItem('authToken');
+    const url = `/api/user/${userId}/cart-items/count`;
+    fetch(url, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+    })
+      .then(res => res.json())
+      .then(data => {
+        // Accept either { count: N } or a numeric response or an array
+        let count = 0;
+        if (data == null) count = 0;
+        else if (typeof data === 'number') count = data;
+        else if (Array.isArray(data)) count = data.length;
+        else if (typeof data === 'object' && data.count != null) count = Number(data.count) || 0;
+        setCartCount(count);
+        setCartLoading(false);
+      })
+      .catch(() => {
+        setCartCount(0);
+        setCartLoading(false);
+      });
+  }, [userId]);
+
+  // Call once when userId changes
+  React.useEffect(() => {
+    if (!userId) {
+      setCartCount(0);
+      return;
+    }
+    fetchCartCount();
+  }, [userId, fetchCartCount]);
+
+  // Listen for cart-updated events so we can refresh the count live
+  React.useEffect(() => {
+    window.addEventListener('cart-updated', fetchCartCount);
+    return () => {
+      window.removeEventListener('cart-updated', fetchCartCount);
+    };
+  }, [fetchCartCount]);
 
   return (
     <>
@@ -190,9 +242,28 @@ const Header = () => {
             </div>
 
             {/* Cart and User ID */}
-            <a href="/cart" className="header-cart">
+            <a href="/cart" className="header-cart" style={{position: 'relative', display: 'inline-flex', alignItems: 'center'}}>
               <ShoppingCart size={22} />
-              <span className="header-cart-badge">3</span>
+              {/* Show badge only when cartCount > 0 */}
+              {cartCount > 0 && (
+                <span
+                  className="header-cart-badge"
+                  style={{
+                    position: 'absolute',
+                    top: -4,
+                    right: -4,
+                    fontSize: '0.65rem',
+                    lineHeight: '1',
+                    minWidth: 16,
+                    height: 16,
+                    padding: '0 4px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 9999,
+                  }}
+                >{cartCount}</span>
+              )}
             </a>
             <span className="header-user-id" style={{marginLeft: '0.7rem', fontWeight: 'bold', color: 'var(--color-primary)'}}>
               ID: {userId ? userId : 'No Login'}
@@ -207,7 +278,13 @@ const Header = () => {
 
       {/* Create Shop Modal (rendered above shop modal) */}
       {showCreateShop && (
-        <CreateShop onClose={() => setShowCreateShop(false)} />
+        <CreateShop 
+          onClose={() => setShowCreateShop(false)}
+          onShopCreated={() => {
+            setShowCreateShop(false);
+            setShouldReloadShops(true);
+          }}
+        />
       )}
       {/* Shop Modal */}
       {showShopModal && !showCreateShop && (
@@ -242,15 +319,21 @@ const Header = () => {
                           window.location.href = url;
                         }
                       }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
                     >
-                      <div className="shop-modal-shop-icon">
-                        {shop.logoUrl ? (
-                          <img src={shop.logoUrl} alt={shop.name} className="shop-logo-circle" />
-                        ) : (
-                          <span className="shop-logo-placeholder"></span>
-                        )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div className="shop-modal-shop-icon">
+                          {shop.logoUrl ? (
+                            <img src={shop.logoUrl} alt={shop.name} className="shop-logo-circle" />
+                          ) : (
+                            <span className="shop-logo-placeholder"></span>
+                          )}
+                        </div>
+                        {shop.name}
                       </div>
-                      {shop.name}
+                      <span style={{ marginLeft: 16, fontWeight: 500, color: shop.isVerified ? '#2ECC71' : 'red', fontSize: '0.98rem' }}>
+                        {shop.isVerified ? 'Verified' : 'Unverified'}
+                      </span>
                     </button>
                   ))
                 )}

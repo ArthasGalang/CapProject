@@ -100,6 +100,10 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
           firstName: '', lastName: '', password: '', confirmPassword: '',
           email: '', contactNumber: '', barangay: '', municipality: '', zipcode: '', houseNumber: '', street: ''
         });
+        // Store AddressID in localStorage if present
+        if (data.address && (data.address.AddressID || data.address.id)) {
+          localStorage.setItem('lastAddressID', data.address.AddressID || data.address.id);
+        }
       } else {
         setRegError(data.message || 'Registration failed.');
       }

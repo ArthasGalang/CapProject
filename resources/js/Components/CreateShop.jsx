@@ -1,13 +1,13 @@
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 
-const CreateShop = ({ onClose }) => {
+const CreateShop = ({ onClose, onShopCreated }) => {
   const [form, setForm] = useState({
     ShopName: '',
     ShopDescription: '',
     LogoImage: null,
     BackgroundImage: null,
-    AddressID: '',
+    AddressID: localStorage.getItem('lastAddressID') || '',
     BusinessPermit: null,
     hasPhysical: false,
     addressExisting: true,
@@ -52,15 +52,17 @@ const CreateShop = ({ onClose }) => {
       alert('User not found. Please login.');
       return;
     }
-    let addressString = '';
     let addressId = form.AddressID;
     if (form.addressExisting) {
+      // Use selected existing address
       const selected = addresses.find(a => (a.AddressID || a.id) == form.AddressID);
-      if (selected) {
-        addressString = `${selected.HouseNumber || selected.houseNumber}, ${selected.Street || selected.street}, ${selected.Barangay || selected.barangay}, ${selected.Municipality || selected.municipality}, ${selected.ZipCode || selected.zipcode}`;
+      if (!selected) {
+        alert('Please select an address.');
+        return;
       }
+      addressId = selected.AddressID || selected.id;
     } else {
-      // Create new address in backend
+      // Create new address in backend, then use its AddressID
       try {
         const res = await axios.post(`/api/user/${userData.UserID}/addresses`, {
           Street: form.Street,
@@ -71,7 +73,6 @@ const CreateShop = ({ onClose }) => {
         });
         const addr = res.data;
         addressId = addr.AddressID || addr.id;
-        addressString = `${addr.HouseNumber}, ${addr.Street}, ${addr.Barangay}, ${addr.Municipality}, ${addr.ZipCode}`;
       } catch (err) {
         alert('Failed to create address.');
         return;
@@ -82,7 +83,7 @@ const CreateShop = ({ onClose }) => {
     fd.append('UserID', userData.UserID);
     fd.append('ShopName', form.ShopName);
     fd.append('ShopDescription', form.ShopDescription);
-    fd.append('Address', addressString);
+    fd.append('AddressID', String(addressId));
     fd.append('hasPhysical', form.hasPhysical ? 1 : 0);
     if (form.LogoImage instanceof File) {
       fd.append('LogoImage', form.LogoImage);
@@ -97,8 +98,9 @@ const CreateShop = ({ onClose }) => {
       await axios.post('/api/shops', fd, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      alert('Shop registered!');
-      if (onClose) onClose();
+  alert('Shop registered!');
+  if (onShopCreated) onShopCreated();
+  else if (onClose) onClose();
     } catch (err) {
       alert('Failed to register shop.');
     }

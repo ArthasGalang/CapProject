@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('ContactNumber');
             $table->string('ProfileImage')->nullable();
             $table->unsignedBigInteger('DefaultAddress')->nullable();
-            $table->enum('Status', ['Active', 'Busy', 'Offline'])->default('Active');
+            $table->enum('Status', ['Active', 'Busy', 'Offline'])->default('Offline');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('remember_token')->nullable();
             $table->timestamps();

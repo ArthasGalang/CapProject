@@ -1,5 +1,6 @@
 
 
+
 <?php
 
 use Illuminate\Http\Request;
@@ -72,6 +73,14 @@ Route::get('/order-details', function(Request $request) {
     return response()->json(['order_details' => $details]);
 });
 
+Route::get('/addresses/{id}', function($id) {
+    $address = \DB::table('addresses')->where('AddressID', $id)->first();
+    if ($address) {
+        return response()->json($address);
+    } else {
+        return response()->json(['error' => 'Address not found'], 404);
+    }
+});
 
 Route::get('/shops', [ShopController::class, 'index']);
 Route::get('/shops/many', [ShopController::class, 'getMany']);
@@ -108,6 +117,12 @@ Route::get('/categories', function() {
 Route::get('/user/{id}/addresses', function($id) {
     $addresses = \DB::table('addresses')->where('UserID', $id)->get();
     return response()->json($addresses);
+});
+
+// Get cart items count for a specific user (compatibility)
+Route::get('/user/{id}/cart-items/count', function($id) {
+    $count = \DB::table('cart_items')->where('UserID', $id)->count();
+    return response()->json(['count' => $count]);
 });
 
 // Add a new address for a user
@@ -153,3 +168,6 @@ Route::get('/check-user/{id}', function($id) {
 Route::get('/reviews/average-ratings', [ReviewController::class, 'averageRatings']);
 Route::get('/cart-items', [CartItemController::class, 'index']);
 Route::patch('/cart-items/{id}', [CartItemController::class, 'update']);
+
+// Get cart items count for authenticated user
+Route::middleware('auth:sanctum')->get('/cart-items/count', [CartController::class, 'countForAuthUser']);

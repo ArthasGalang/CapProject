@@ -181,7 +181,7 @@ const Landing = () => {
                                 onMouseLeave={() => setHoveredIdx(null)}
                                 onClick={() => window.location.href = `/product/${item.ProductID || ''}`}
                                 style={{textAlign: 'center', width: '100%'}}
-                                setToast={setToast}
+                                // Do not pass setToast here so landing page won't show 'Added to cart' toast
                             />
                         );
                     })}

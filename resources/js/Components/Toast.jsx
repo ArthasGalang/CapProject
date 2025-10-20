@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import '../../css/shop.css';
 
-const Toast = ({ message, type = 'success', onClose, duration = 2500 }) => {
+const Toast = ({ message, type = 'success', onClose, duration = 1500 }) => {
   useEffect(() => {
     if (!onClose) return;
     const timer = setTimeout(() => {
@@ -13,7 +13,6 @@ const Toast = ({ message, type = 'success', onClose, duration = 2500 }) => {
   return (
     <div className={`shop-toast shop-toast--top shop-toast--${type}`}> 
       <span>{message}</span>
-      <button className="shop-toast-close" onClick={onClose}>&times;</button>
     </div>
   );
 };

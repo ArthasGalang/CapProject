@@ -17,16 +17,26 @@ class ShopController extends Controller
 	// Register a new shop
 	public function store(Request $request)
 	{
-		$validated = $request->validate([
+	\Log::info('ShopController@store incoming request', $request->all());
+	$validated = $request->validate([
 			'UserID' => 'required|integer',
 			'ShopName' => 'required|string',
 			'ShopDescription' => 'required|string',
-			'Address' => 'required|string',
 			'hasPhysical' => 'boolean',
 			'LogoImage' => 'nullable|file|image',
 			'BackgroundImage' => 'nullable|file|image',
 			'BusinessPermit' => 'nullable|file|image',
+			'AddressID' => 'required|integer',
+			// Address fields (now optional)
+			'houseNumber' => 'nullable|string|max:50',
+			'street' => 'nullable|string|max:255',
+			'barangay' => 'nullable|string|max:255',
+			'municipality' => 'nullable|string|max:255',
+			'zipcode' => 'nullable|string|max:10',
 		]);
+
+		// Use AddressID from request if provided, else create new address if all fields are present
+		$addressId = $validated['AddressID'];
 
 		$data = $validated;
 		// Handle file uploads
@@ -37,10 +47,9 @@ class ShopController extends Controller
 				$data[$field] = null;
 			}
 		}
-		$shop = \App\Models\Shop::create([
-			...$data,
-			'isVerified' => false
-		]);
+		// Ensure AddressID is set right before create
+		$data['AddressID'] = $addressId;
+	$shop = \App\Models\Shop::create($data);
 		return response()->json(['success' => true, 'shop' => $shop], 201);
 	}
 

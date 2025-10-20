@@ -22,7 +22,7 @@ return new class extends Migration
         $table->string("Description");
         $table->decimal("Price", 10, 2);
         $table->unsignedInteger("Stock");
-        $table->json("Image");
+        $table->string("Image");
         $table->unsignedInteger('SoldAmount')->default(0);
         $table->decimal('Discount', 10, 2)->nullable();
         $table->boolean('IsFeatured')->default(false);
