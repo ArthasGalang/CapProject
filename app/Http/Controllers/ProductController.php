@@ -40,56 +40,68 @@ class ProductController extends Controller {
     // Get product by ProductID
     public function show($ProductID)
     {
-        $product = Product::where('ProductID', $ProductID)->first();
-        if (!$product) {
+        // Query the product_details_view for product details (including Description)
+        $row = \DB::table('product_details_view')->where('ProductID', $ProductID)->first();
+        if (!$row) {
             return response()->json(['error' => 'Product not found'], 404);
         }
 
-        // Get average rating from reviews
-        $avgRating = 0;
-        $reviewData = \DB::table('reviews')
-            ->where('ProductID', $ProductID)
-            ->selectRaw('AVG(Rating) as avg_rating')
-            ->first();
-        if ($reviewData && $reviewData->avg_rating) {
-            $avgRating = round($reviewData->avg_rating, 2);
+        // Helper to normalize image fields: field may be JSON string or plain string
+        $resolveImages = function ($val) {
+            $out = [];
+            if ($val === null) return $out;
+            if (is_string($val)) {
+                $trim = trim($val);
+                $decoded = json_decode($trim, true);
+                if (is_array($decoded)) {
+                    $out = $decoded;
+                } else {
+                    $out = [$trim];
+                }
+            } elseif (is_array($val)) {
+                $out = $val;
+            }
+            $normalized = array_map(function ($p) {
+                if (!$p) return null;
+                $p = trim($p, " \"'\n\r");
+                if (preg_match('/^https?:\/\//i', $p)) return $p;
+                $p = ltrim($p, '/\\');
+                return '/storage/' . $p;
+            }, $out);
+            return array_values(array_filter($normalized));
+        };
+
+        // Build images array: primary Image then AdditionalImages
+        $images = $resolveImages($row->Image ?? null);
+        $additional = $resolveImages($row->AdditionalImages ?? null);
+        $all = $images;
+        foreach ($additional as $a) {
+            if (!in_array($a, $all)) $all[] = $a;
+        }
+        if (empty($all)) {
+            $all = ['https://via.placeholder.com/400x120?text=No+Image'];
         }
 
-        // Sold amount from BoughtBy field
-        $sold = 0;
-        if ($product->BoughtBy) {
-            try {
-                $arr = is_string($product->BoughtBy) ? json_decode($product->BoughtBy, true) : $product->BoughtBy;
-                if (is_array($arr)) $sold = count($arr);
-            } catch (\Exception $e) { $sold = 0; }
+        // Normalize shop logo path
+        $shopLogo = null;
+        if (!empty($row->LogoImage)) {
+            $logoArr = $resolveImages($row->LogoImage);
+            $shopLogo = count($logoArr) ? $logoArr[0] : null;
         }
-
-        // Shop info
-        $shop = \App\Models\Shop::where('ShopID', $product->ShopID)->first();
-        $shopName = $shop ? $shop->ShopName : '';
-        $shopLogo = $shop ? $shop->LogoImage : null;
-        $owner = $shop ? \App\Models\User::where('UserID', $shop->UserID)->first() : null;
-        $ownerName = $owner ? ($owner->FirstName . ' ' . $owner->LastName) : '';
 
         $productData = [
-            'title' => $product->ProductName,
-            'price' => $product->Price,
-            'rating' => $avgRating,
-            'sold' => $sold,
-            'images' => [
-                $product->Image ?? 'https://via.placeholder.com/400x120?text=Main+Image',
-                'https://via.placeholder.com/80x120?text=Thumb1',
-                'https://via.placeholder.com/80x120?text=Thumb2',
-                'https://via.placeholder.com/80x120?text=Thumb3',
-                'https://via.placeholder.com/80x120?text=Thumb4',
-                'https://via.placeholder.com/80x120?text=Thumb5',
-            ],
-            'description' => $product->Description,
-            'shopName' => $shopName,
+            'title' => $row->ProductName,
+            'price' => $row->Price,
+            'sold' => (int) ($row->Sold ?? 0),
+            'images' => $all,
+            'description' => $row->Description ?? '',
+            'shopName' => $row->Shop,
             'shopLogo' => $shopLogo,
-            'ownerName' => $ownerName,
-            'shopId' => $product->ShopID,
+            'ownerName' => $row->User,
+            'shopId' => $row->ShopID ?? null,
+            'Description' => $row->Description ?? '',
         ];
+
         return response()->json($productData);
     }
     public function store(Request $request)

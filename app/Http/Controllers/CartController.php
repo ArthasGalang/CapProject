@@ -21,6 +21,52 @@ class CartController extends Controller
         return response()->json($items);
     }
 
+    // POST /api/cart/add
+    public function add(Request $request)
+    {
+        $validated = $request->validate([
+            'productId' => 'required|integer|exists:products,ProductID',
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        // You may want to get the user from auth, but for demo, fallback to userId from request
+        $userId = $request->input('userId') ?? ($request->user() ? ($request->user()->UserID ?? $request->user()->id) : null);
+        if (!$userId) {
+            return response()->json(['error' => 'User ID required'], 400);
+        }
+
+        // Get product and shop info
+        $product = \DB::table('products')->where('ProductID', $validated['productId'])->first();
+        if (!$product) {
+            return response()->json(['error' => 'Product not found'], 404);
+        }
+        $shopId = $product->ShopID;
+        $price = $product->Price;
+        $subtotal = $price * $validated['quantity'];
+
+        // Check if already in cart
+        $existing = \App\Models\CartItem::where('UserID', $userId)
+            ->where('ProductID', $validated['productId'])
+            ->where('ShopID', $shopId)
+            ->first();
+        if ($existing) {
+            $existing->Quantity += $validated['quantity'];
+            $existing->Price = $price;
+            $existing->Subtotal = $existing->Quantity * $price;
+            $existing->save();
+            return response()->json(['success' => true, 'message' => 'Cart updated', 'item' => $existing], 200);
+        } else {
+            $item = \App\Models\CartItem::create([
+                'UserID' => $userId,
+                'ProductID' => $validated['productId'],
+                'ShopID' => $shopId,
+                'Quantity' => $validated['quantity'],
+                'Price' => $price,
+                'Subtotal' => $subtotal,
+            ]);
+            return response()->json(['success' => true, 'message' => 'Added to cart', 'item' => $item], 201);
+        }
+    }
     /**
      * Return the number of cart items for the authenticated user.
      */

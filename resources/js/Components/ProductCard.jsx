@@ -23,6 +23,103 @@ const ProductCard = ({
         } catch (e) { sold = 0; }
     }
 
+    // --- Image normalization logic from ShopProducts ---
+    const placeholderProductImage = 'https://via.placeholder.com/90x90?text=Product';
+    // Robust normalization logic from ShopProducts
+    const normalizeImageUrl = (val) => {
+        if (!val) return null;
+        if (typeof val !== 'string') return null;
+        let s = val.trim();
+        // If looks like a JSON array string, try to parse and use first element
+        if (s.startsWith('[')) {
+            try {
+                const parsed = JSON.parse(s);
+                if (Array.isArray(parsed) && parsed.length) {
+                    for (const item of parsed) {
+                        const nu = normalizeImageUrl(item);
+                        if (nu) return nu;
+                    }
+                }
+            } catch (e) {}
+        }
+        // If the string contains encoded JSON-like content (e.g. %22...), decode it first
+        try {
+            if (/%22|%5B|%5D/.test(s)) {
+                const decoded = decodeURIComponent(s);
+                if (decoded && decoded !== s) s = decoded;
+            }
+        } catch (e) {}
+        // If it's a blob or data URL (local preview), return as-is
+        if (s.startsWith('blob:') || s.startsWith('data:') || s.startsWith('file:')) return s;
+        // Strip surrounding quotes or brackets
+        if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+            s = s.slice(1, -1);
+        }
+        s = s.replace(/^[\[\]\s\"]+|[\[\]\s\"]+$/g, '');
+        if (!s) return null;
+        // Normalize repeated slashes (but keep protocol if present)
+        if (s.startsWith('http://') || s.startsWith('https://')) {
+            // Collapse duplicate slashes after protocol
+            return s.replace(/([^:])\/\/+/, '$1/');
+        }
+        s = s.replace(/^\/+/, '');
+        s = s.replace(/^storage[\/]+/, '');
+        s = s.replace(/\\/g, '/');
+        // Collapse duplicate slashes in the path
+        s = s.replace(/\/\/+/, '/');
+        return `/storage/${s}`;
+    };
+
+    // Get all possible product images, deduplicated
+    const getProductImages = (product) => {
+        if (!product) return [];
+        const collected = [];
+        const pushParsed = (val) => {
+            if (!val && val !== 0) return;
+            if (Array.isArray(val)) {
+                for (const it of val) collected.push(it);
+            } else if (typeof val === 'string') {
+                const s = val.trim();
+                if (s.startsWith('[')) {
+                    try {
+                        const parsed = JSON.parse(s);
+                        if (Array.isArray(parsed)) {
+                            for (const it of parsed) collected.push(it);
+                            return;
+                        }
+                    } catch (e) {}
+                }
+                collected.push(s);
+            } else {
+                collected.push(val);
+            }
+        };
+        if (product.Image) pushParsed(product.Image);
+        if (product.Images) pushParsed(product.Images);
+        if (product.ImageUrl) pushParsed(product.ImageUrl);
+        if (product.AdditionalImages) pushParsed(product.AdditionalImages);
+        if (product.ImagesJson) pushParsed(product.ImagesJson);
+        const urls = collected
+            .map((v) => (typeof v === 'string' ? normalizeImageUrl(v) : null))
+            .filter(Boolean);
+        const seen = new Set();
+        const out = [];
+        for (const u of urls) {
+            if (!seen.has(u)) {
+                seen.add(u);
+                out.push(u);
+            }
+        }
+        return out;
+    };
+
+    // Get the main product image
+    const getProductImage = (product, index = 0) => {
+        const imgs = getProductImages(product);
+        if (imgs.length === 0) return placeholderProductImage;
+        return imgs[Math.min(index, imgs.length - 1)];
+    };
+
     // Add to Cart handler
     const handleAddToCart = async (e) => {
         e.stopPropagation();
@@ -98,7 +195,7 @@ const ProductCard = ({
             }}
         >
             <img
-                src={product.Image || product.image || "https://via.placeholder.com/90x90?text=Product"}
+                src={getProductImage(product)}
                 alt={product.ProductName || product.name}
                 className="product-image"
             />

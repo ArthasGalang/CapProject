@@ -1,22 +1,134 @@
 import React, { useState } from "react";
-import { usePage } from '@inertiajs/react';
+import { usePage, router } from '@inertiajs/react';
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
+
+import Toast from "@/Components/Toast";
 
 const ProductDetails = () => {
   const { ProductID } = usePage().props;
   const [product, setProduct] = useState(null);
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [quantity, setQuantity] = useState(1);
+    // Add to Cart state
+    const [addingToCart, setAddingToCart] = useState(false);
+  const [cartMessage, setCartMessage] = useState("");
+  const [showToast, setShowToast] = useState(false);
 
   React.useEffect(() => {
     fetch(`/api/product/${ProductID}`)
       .then(res => res.json())
       .then(data => {
+        console.log('Fetched product data:', data);
         setProduct(data);
       });
   }, [ProductID]);
 
+  // Carousel/image normalization logic must run (and its hooks declared)
+  // before any early returns so Hooks order stays stable.
+  const placeholderSvg = encodeURIComponent(`<?xml version="1.0" encoding="UTF-8"?><svg xmlns='http://www.w3.org/2000/svg' width='600' height='600' viewBox='0 0 600 600'><rect width='100%' height='100%' fill='%23f3f4f6'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%23888' font-family='Arial, Helvetica, sans-serif' font-size='24'>No image</text></svg>`);
+  const placeholder = `data:image/svg+xml;utf8,${placeholderSvg}`;
+
+  const normalizeToArray = (val) => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val.filter(Boolean);
+    if (typeof val === 'string') {
+      try { const parsed = JSON.parse(val); if (Array.isArray(parsed)) return parsed.filter(Boolean); } catch (e) { }
+      return val ? [val] : [];
+    }
+    return [String(val)];
+  };
+
+  // Build images array defensively even when `product` is null so hooks remain stable
+  // Log raw image fields for debugging
+  console.log('Raw image fields:', {
+    image: product?.image,
+    Image: product?.Image,
+    images: product?.images,
+    Images: product?.Images,
+    ImageUrl: product?.ImageUrl,
+    ImagePath: product?.ImagePath,
+    additionalImages: product?.additionalImages,
+    AdditionalImages: product?.AdditionalImages,
+    AdditionalImgs: product?.AdditionalImgs,
+    AdditionalImage: product?.AdditionalImage
+  });
+
+  // Collect all possible image arrays/strings
+  const mainImages = normalizeToArray(product?.image || product?.Image || product?.images || product?.Images || product?.ImageUrl || product?.ImagePath);
+  const additionalImages = normalizeToArray(product?.additionalImages || product?.AdditionalImages || product?.AdditionalImgs || product?.AdditionalImage);
+
+  // Merge and deduplicate images
+  const imagesSet = new Set([...mainImages, ...additionalImages].filter(Boolean));
+  const images = Array.from(imagesSet);
+  // Normalize image URLs to avoid relative-path issues (make absolute)
+  const resolveImageUrl = (p) => {
+    if (!p) return p;
+    let s = String(p).trim();
+    // If it's a JSON array string like '["products/..png"]', try to parse
+    if ((s.startsWith('[') && s.endsWith(']')) || s.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed) && parsed.length > 0) { s = String(parsed[0]); }
+        else if (typeof parsed === 'string') { s = parsed; }
+      } catch (e) {
+        // fallthrough to cleaning
+      }
+    }
+    // strip quotes and brackets left-over
+    s = s.replace(/^\[|\]$/g, '').replace(/^"|"$/g, '').trim();
+    // collapse duplicate slashes
+    s = s.replace(/\\/g, '/').replace(/\/+/g, '/');
+    // ensure leading slash for relative paths
+    if (!s.startsWith('http://') && !s.startsWith('https://') && !s.startsWith('//') && !s.startsWith('/')) {
+      s = `/${s.replace(/^\/+/, '')}`;
+    }
+    return s;
+  };
+
+  for (let i = 0; i < images.length; i++) images[i] = resolveImageUrl(images[i]);
+  // ensure at least one placeholder image is present
+  if (images.length === 0) images.push(placeholder);
+
+  // Clamp selected index when images change
+  React.useEffect(() => {
+    setSelectedImageIdx(idx => Math.min(idx, Math.max(0, images.length - 1)));
+  }, [images.length]);
+
+    // Add to Cart handler
+    const handleAddToCart = async () => {
+      setAddingToCart(true);
+    setCartMessage("");
+    setShowToast(false);
+      try {
+        let userId = null;
+        try {
+          const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+          userId = user?.UserID || user?.id || null;
+        } catch (e) { userId = null; }
+        const res = await fetch("/api/cart/add", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ productId: ProductID, quantity, userId }),
+        });
+        if (!res.ok) throw new Error("Failed to add to cart");
+        const data = await res.json();
+  setCartMessage(data.message || "Added to Cart");
+  setShowToast(true);
+  // Trigger header to update cart count
+  window.dispatchEvent(new Event('cart-updated'));
+      } catch (err) {
+        setCartMessage("Error adding to cart");
+      } finally {
+        setAddingToCart(false);
+      }
+    };
+
+  // If product isn't loaded yet, show loading UI (hooks remain declared above)
+  // Log product object for debugging
+  console.log('Product object:', product);
   if (!product) {
     return (
       <>
@@ -29,13 +141,37 @@ const ProductDetails = () => {
     );
   }
 
-  // Carousel logic
-  const images = [
-    product.images && product.images[0] ? product.images[0] : '',
-    ...(Array.isArray(product.additionalImages) ? product.additionalImages : [])
-  ];
   const goPrev = () => setSelectedImageIdx(idx => Math.max(0, idx - 1));
   const goNext = () => setSelectedImageIdx(idx => Math.min(images.length - 1, idx + 1));
+
+  // Buy Now handler: create temp cart item and go to checkout
+  const handleBuyNow = () => {
+    let userId = null;
+    try {
+      const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+      userId = user?.UserID || user?.id || null;
+    } catch (e) { userId = null; }
+    if (!product) return;
+    const tempCartItem = {
+      CartItemID: `temp-${ProductID}-${Date.now()}`,
+      ProductID,
+      Quantity: quantity,
+      Price: product.price,
+      Subtotal: product.price * quantity,
+      ShopID: product.ShopID ?? product.shopId,
+      ProductName: product.title,
+      Image: product.image,
+      // Add other fields as needed
+    };
+    router.visit('/checkout', {
+      data: {
+        userId,
+        selectedCartItemIds: [tempCartItem.CartItemID],
+        tempCartItems: [tempCartItem],
+        total: tempCartItem.Subtotal
+      }
+    });
+  };
 
   return (
     <>
@@ -46,14 +182,15 @@ const ProductDetails = () => {
           {/* Left: Image Carousel */}
           <div style={{ flex: '1 1 340px', minWidth: 320, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <div style={{ background: '#eaeaea', borderRadius: '1rem', padding: 0, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 320, height: 400, maxWidth: 400, border: '2px solid #2ecc71', width: 400 }}>
-              <img src={images[selectedImageIdx]} alt="Product" style={{ width: 360, height: 360, objectFit: 'cover', borderRadius: '1rem', background: '#fff', margin: 'auto' }} />
+              <img src={images[selectedImageIdx]} alt="Product" onError={(e) => { e.currentTarget.src = placeholder; }} style={{ width: 360, height: 360, objectFit: 'cover', borderRadius: '1rem', background: '#fff', margin: 'auto' }} />
             </div>
             {/* Carousel Controls */}
             <div style={{ display: 'flex', gap: '0.7rem', marginTop: '1.2rem', justifyContent: 'center', alignItems: 'center' }}>
               <button onClick={goPrev} disabled={selectedImageIdx === 0} style={{ background: 'none', border: 'none', fontSize: '2rem', color: selectedImageIdx === 0 ? '#ccc' : '#2ecc71', cursor: 'pointer' }}>&lt;</button>
+              {/* Show all images as thumbnails, user can click to switch */}
               {images.map((img, idx) => (
-                <div key={img} style={{ width: 54, height: 54, borderRadius: '0.5rem', border: selectedImageIdx === idx ? '2px solid #2ecc71' : '2px solid #222', background: '#eaeaea', display: 'inline-block', margin: '0 2px', boxSizing: 'border-box' }}>
-                  <img src={img} alt={`Thumb ${idx+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '0.5rem' }} onClick={() => setSelectedImageIdx(idx)} />
+                <div key={idx} style={{ width: 54, height: 54, borderRadius: '0.5rem', border: selectedImageIdx === idx ? '2px solid #2ecc71' : '2px solid #222', background: '#eaeaea', display: 'inline-block', margin: '0 2px', boxSizing: 'border-box' }}>
+                  <img src={img} alt={`Thumb ${idx+1}`} onError={(e) => { e.currentTarget.src = placeholder; }} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '0.5rem', cursor: 'pointer' }} onClick={() => setSelectedImageIdx(idx)} />
                 </div>
               ))}
               <button onClick={goNext} disabled={selectedImageIdx === images.length - 1} style={{ background: 'none', border: 'none', fontSize: '2rem', color: selectedImageIdx === images.length - 1 ? '#ccc' : '#2ecc71', cursor: 'pointer' }}>&gt;</button>
@@ -87,9 +224,45 @@ const ProductDetails = () => {
               </div>
             </div>
             {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '1.2rem', marginTop: '2rem' }}>
-              <button className="loginBtn" style={{ flex: 1, fontWeight: 700, fontSize: '1.15rem', height: '48px', background: 'var(--color-primary)', border: '2px solid var(--color-primary)' }}>Buy Now</button>
-              <button className="registerBtn" style={{ flex: 1, fontWeight: 700, fontSize: '1.15rem', height: '48px', border: '2px solid var(--color-primary)', color: 'var(--color-primary)' }}>Add to Cart</button>
+            <div style={{ display: 'flex', gap: '1.2rem', marginTop: '15rem' }}>
+              <button
+                style={{
+                  minWidth: 260,
+                  fontWeight: 700,
+                  fontSize: '1.15rem',
+                  height: '48px',
+                  background: '#2ecc71',
+                  color: '#fff',
+                  border: '2px solid #2ecc71',
+                  borderRadius: 8,
+                  padding: '0.5rem 1.2rem',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+                onClick={handleBuyNow}
+              >Buy Now</button>
+              <button
+                style={{
+                  minWidth: 260,
+                  fontWeight: 700,
+                  fontSize: '1.15rem',
+                  height: '48px',
+                  background: '#fff',
+                  color: '#2ecc71',
+                  border: '2px solid #2ecc71',
+                  borderRadius: 8,
+                  padding: '0.5rem 1.2rem',
+                  cursor: addingToCart ? 'not-allowed' : 'pointer',
+                  opacity: addingToCart ? 0.6 : 1,
+                  transition: 'background 0.2s'
+                }}
+                disabled={addingToCart}
+                onClick={handleAddToCart}
+              >{addingToCart ? 'Adding...' : 'Add to Cart'}</button>
+              {/* Show Toast for Add to Cart */}
+              {showToast && (
+                <Toast message="Added to Cart" type="success" onClose={() => setShowToast(false)} />
+              )}
             </div>
           </div>
         </div>
@@ -99,7 +272,7 @@ const ProductDetails = () => {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 70 }}>
               <div style={{ width: 56, height: 56, borderRadius: '50%', border: '2px solid #2ecc71', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 2, overflow: 'hidden' }}>
                 {product.shopLogo ? (
-                  <img src={product.shopLogo} alt="Shop Logo" style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover' }} />
+                  <img src={resolveImageUrl(product.shopLogo)} alt="Shop Logo" style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover' }} />
                 ) : (
                   <span style={{ color: '#2ecc71', fontWeight: 600, fontSize: 16 }}>Shop</span>
                 )}
@@ -111,7 +284,7 @@ const ProductDetails = () => {
             </div>
             <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', marginLeft: 12 }}>
               <button
-                onClick={() => window.location.href = `/shop/${product.shopId}`}
+                onClick={() => window.location.href = `/shop/${product.ShopID ?? product.shopId}`}
                 style={{ background: '#2ecc71', color: '#fff', fontWeight: 700, fontSize: '0.95rem', border: '2px solid #2ecc71', borderRadius: 8, padding: '0.5rem 1.2rem', cursor: 'pointer', transition: 'background 0.2s' }}
               >
                 Visit Shop

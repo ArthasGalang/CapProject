@@ -4,6 +4,7 @@
 <?php
 
 use Illuminate\Http\Request;
+use App\Http\Controllers\MessageController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ShopOrderController;
 use App\Http\Controllers\UsersController;
@@ -18,9 +19,16 @@ use App\Http\Controllers\AddressController;
 
 
 
+
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
+// Chat message routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/messages', [MessageController::class, 'index']);
+    Route::post('/messages', [MessageController::class, 'store']);
+});
 
 
 Route::get('/addresses', [AddressController::class, 'getUserAddresses']);

@@ -60,6 +60,11 @@ Route::get('/account', function () {
     return Inertia::render('Account');
 });
 
+// Real-time chat test page
+Route::get('/chat-test', function () {
+    return Inertia::render('ChatTest');
+});
+
 Route::get('/account/info', function () {
     return Inertia::render('AccountInfo');
 });
