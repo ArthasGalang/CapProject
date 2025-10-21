@@ -9,19 +9,20 @@ class MessageController extends Controller
 {
     public function index(Request $request)
     {
-        $userId = $request->user()->UserID ?? $request->user()->id;
-        $otherId = $request->query('other_id');
-        $messages = Message::where(function($q) use ($userId, $otherId) {
-            $q->where('SenderID', $userId)->where('ReceiverID', $otherId);
-        })->orWhere(function($q) use ($userId, $otherId) {
-            $q->where('SenderID', $otherId)->where('ReceiverID', $userId);
-        })->orderBy('created_at')->get();
+        $userId = $request->query('sender_id');
+        if (!$userId) {
+            return response()->json([]);
+        }
+        $messages = Message::where('SenderID', $userId)
+            ->orWhere('ReceiverID', $userId)
+            ->orderBy('created_at')
+            ->get();
         return response()->json($messages);
     }
 
     public function store(Request $request)
     {
-        $userId = $request->user()->UserID ?? $request->user()->id;
+        $userId = $request->input('sender_id');
         $message = Message::create([
             'SenderID' => $userId,
             'ReceiverID' => $request->input('receiver_id'),

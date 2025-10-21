@@ -15,8 +15,11 @@ const ProductCard = ({
     // Local toast fallback when parent doesn't supply setToast
     const [localToast, setLocalToast] = useState({ show: false, message: '', type: 'success' });
     const rating = product.avgRating != null ? product.avgRating : 0;
+    // Prefer SoldAmount if present, else fallback to BoughtBy length
     let sold = 0;
-    if (product.BoughtBy) {
+    if (typeof product.SoldAmount === 'number') {
+        sold = product.SoldAmount;
+    } else if (product.BoughtBy) {
         try {
             const arr = typeof product.BoughtBy === 'string' ? JSON.parse(product.BoughtBy) : product.BoughtBy;
             if (Array.isArray(arr)) sold = arr.length;

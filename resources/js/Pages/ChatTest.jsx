@@ -9,6 +9,8 @@ const ChatTest = () => {
   const [userId, setUserId] = useState(CURRENT_USER_ID);
   const [otherId, setOtherId] = useState(OTHER_USER_ID);
 
+  
+
   return (
     <div style={{ maxWidth: 500, margin: '40px auto', padding: 20, border: '1px solid #eee', borderRadius: 10, background: '#fafafa' }}>
       <h2>Real-Time Chat Test</h2>

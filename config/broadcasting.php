@@ -12,6 +12,14 @@ return [
             'options' => [
                 'cluster' => env('PUSHER_APP_CLUSTER'),
                 'useTLS' => true,
+                'curl_options' => [
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_SSL_VERIFYHOST => false,
+                    CURLOPT_CAINFO => 'C:/xampp/php-8.4.11/extras/ssl/cacert.pem',
+                ],
+                'guzzle_options' => [
+                    'verify' => false,
+                ],
             ],
         ],
 

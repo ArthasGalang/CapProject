@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import FloatingChatButton from "../Components/FloatingChatButton";
 import Header from "@/Components/Header";
@@ -6,19 +7,21 @@ import ProductCard from "../Components/ProductCard";
 import Toast from "../Components/Toast";
 import "../../css/app.css";
 // import Footer from "@/Components/Footer";
+// Icon imports
+import { FaLaptop, FaBook, FaTshirt, FaHome, FaPuzzlePiece, FaAppleAlt, FaSpa, FaFootballBall, FaCar, FaDog } from "react-icons/fa";
 
 
 const categories = [
-    { name: 'Electronics', slug: 'electronics', icon: <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 21h8"/></svg> },
-    { name: 'Books', slug: 'books', icon: <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 7H20v13H6.5A2.5 2.5 0 0 1 4 17.5V4.5z"/></svg> },
-    { name: 'Clothing', slug: 'clothing', icon: <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M16 3l5 6-5 2-4-2-4 2-5-2 5-6"/><path d="M12 7v14"/></svg> },
-    { name: 'Home', slug: 'home', icon: <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9"/><rect x="6" y="12" width="12" height="8"/></svg> },
-    { name: 'Toys', slug: 'toys', icon: <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M2 12h2m16 0h2M12 2v2m0 16v2"/></svg> },
-    { name: 'Groceries', slug: 'groceries', icon: <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M8 7V4a4 4 0 0 1 8 0v3"/></svg> },
-    { name: 'Beauty', slug: 'beauty', icon: <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="6" ry="8"/><path d="M12 2v20"/></svg> },
-    { name: 'Sports', slug: 'sports', icon: <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16"/></svg> },
-    { name: 'Automotive', slug: 'automotive', icon: <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="10" width="18" height="7" rx="2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg> },
-    { name: 'Pets', slug: 'pets', icon: <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="8" cy="8" r="2"/><circle cx="16" cy="8" r="2"/><ellipse cx="12" cy="16" rx="6" ry="4"/></svg> }
+    { name: 'Electronics', slug: 'electronics', icon: <FaLaptop size={28} /> },
+    { name: 'Books', slug: 'books', icon: <FaBook size={28} /> },
+    { name: 'Clothing', slug: 'clothing', icon: <FaTshirt size={28} /> },
+    { name: 'Home', slug: 'home', icon: <FaHome size={28} /> },
+    { name: 'Toys', slug: 'toys', icon: <FaPuzzlePiece size={28} /> },
+    { name: 'Groceries', slug: 'groceries', icon: <FaAppleAlt size={28} /> },
+    { name: 'Beauty', slug: 'beauty', icon: <FaSpa size={28} /> },
+    { name: 'Sports', slug: 'sports', icon: <FaFootballBall size={28} /> },
+    { name: 'Automotive', slug: 'automotive', icon: <FaCar size={28} /> },
+    { name: 'Pets', slug: 'pets', icon: <FaDog size={28} /> },
 ];
 
 

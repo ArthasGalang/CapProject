@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Header from "../Components/Header";
 import Footer from "../Components/Footer";
 import AccountSidebar from "../Components/AccountSidebar";
+import FloatingChatButton from "../Components/FloatingChatButton";
 
 const orderTabs = [
   { status: 'ToPay', color: '#22c55e', label: 'To Pay' },
@@ -161,7 +162,8 @@ const AccountOrders = () => {
           </div>
         </section>
       </div>
-      <Footer />
+  <FloatingChatButton onClick={() => alert('Open chat window')} />
+  <Footer />
     </>
   );
 };

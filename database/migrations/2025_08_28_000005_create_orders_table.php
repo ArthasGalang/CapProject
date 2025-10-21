@@ -20,7 +20,7 @@ return new class extends Migration
                     ->constrained('shops', 'ShopID')
                     ->onDelete('cascade');
             $table->decimal('TotalAmount', 10, 2);
-            $table->enum('Status', ['ToPay', 'Preparing', 'Delivering', 'Completed', 'Cancelled'])->default('ToPay');
+            $table->enum('Status', ['To Pay', 'Preparing', 'For Pickup/Delivery', 'Completed', 'Cancelled'])->default('To Pay');
             $table->date('OrderDate');
             $table->enum('PaymentMethod', ['CoD', 'EWallet']);
             $table->string('BuyerNote');

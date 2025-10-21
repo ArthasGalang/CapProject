@@ -20,6 +20,17 @@ const ProductDetails = () => {
       .then(res => res.json())
       .then(data => {
         console.log('Fetched product data:', data);
+        if (data && data.reviews) {
+          console.log('Fetched reviews:', data.reviews);
+          if (Array.isArray(data.reviews)) {
+            data.reviews.forEach((review, idx) => {
+              console.log(`Review #${idx + 1}:`, review);
+              if (review && review.replies) {
+                console.log(`Replies for review #${idx + 1}:`, review.replies);
+              }
+            });
+          }
+        }
         setProduct(data);
       });
   }, [ProductID]);
@@ -79,7 +90,7 @@ const ProductDetails = () => {
     s = s.replace(/^\[|\]$/g, '').replace(/^"|"$/g, '').trim();
     // collapse duplicate slashes
     s = s.replace(/\\/g, '/').replace(/\/+/g, '/');
-    // ensure leading slash for relative paths
+    // Only prepend slash for relative paths, not for absolute URLs
     if (!s.startsWith('http://') && !s.startsWith('https://') && !s.startsWith('//') && !s.startsWith('/')) {
       s = `/${s.replace(/^\/+/, '')}`;
     }
@@ -129,6 +140,15 @@ const ProductDetails = () => {
   // If product isn't loaded yet, show loading UI (hooks remain declared above)
   // Log product object for debugging
   console.log('Product object:', product);
+
+  // Defensive: Normalize reviews and replies to always be arrays
+  const reviews = Array.isArray(product?.reviews) ? product.reviews : (product?.reviews ? [product.reviews] : []);
+  for (const r of reviews) {
+    if (r && !Array.isArray(r.replies)) {
+      r.replies = r.replies ? [r.replies] : [];
+    }
+  }
+
   if (!product) {
     return (
       <>
@@ -299,17 +319,32 @@ const ProductDetails = () => {
           <div style={{ fontWeight: 700, fontSize: '1.25rem', color: '#222' }}>Description</div>
           <div style={{ color: '#444', fontSize: '1.1rem', marginBottom: '1.2rem' }}>{product.description}</div>
         </div>
-        {/* Recent Reviews Card */}
+        {/* Reviews & Replies Card */}
         <div style={{ maxWidth: 1100, margin: '2rem auto 0 auto', background: '#fff', borderRadius: '1.2rem', boxShadow: '0 2px 16px rgba(44,204,113,0.07)', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div style={{ fontWeight: 700, fontSize: '1.25rem', marginBottom: '0.7rem', color: '#222' }}>Recent Reviews</div>
-          {product.reviews && product.reviews.length > 0 ? (
-            product.reviews.map((review, idx) => (
-              <div key={idx} style={{ borderBottom: '1px solid #eee', padding: '1rem 0', display: 'flex', alignItems: 'flex-start', gap: '1.2rem' }}>
-                <div style={{ fontWeight: 700, color: '#2ecc71', fontSize: '1.1rem', marginRight: '0.7rem' }}>★ {review.Rating}</div>
+          {reviews && reviews.length > 0 ? (
+            reviews.map((review, idx) => (
+              <div key={idx} style={{ borderBottom: '1px solid #eee', padding: '1.2rem 0 0.7rem 0', display: 'flex', alignItems: 'flex-start', gap: '1.2rem', position: 'relative' }}>
+                <div style={{ fontWeight: 700, color: '#2ecc71', fontSize: '1.25rem', marginRight: '0.7rem', minWidth: 38, textAlign: 'center' }}>★ {review.Rating}</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, color: '#222', marginBottom: '0.3rem' }}>{review.userName}</div>
-                  <div style={{ color: '#444', fontSize: '1rem', marginBottom: '0.3rem' }}>{review.ReviewText}</div>
-                  <div style={{ color: '#aaa', fontSize: '0.95rem' }}>{new Date(review.CreatedAt).toLocaleDateString()}</div>
+                  <div style={{ fontWeight: 600, color: '#222', fontSize: '1.08rem', marginBottom: '0.2rem' }}>{review.userName}</div>
+                  <div style={{ color: '#444', fontSize: '1.08rem', marginBottom: '0.3rem', lineHeight: 1.5 }}>{review.ReviewText || review.Comment}</div>
+                  <div style={{ color: '#aaa', fontSize: '0.97rem', marginBottom: 4 }}>{review.CreatedAt ? new Date(review.CreatedAt).toLocaleDateString() : (review.ReviewDate ? new Date(review.ReviewDate).toLocaleDateString() : '')}</div>
+                  {/* Replies */}
+                  {review.replies && review.replies.length > 0 && (
+                    <div style={{ marginTop: 10, marginLeft: 0, borderLeft: '3px solid #e0f7ef', paddingLeft: 16, background: '#f8fefb', borderRadius: 6 }}>
+                      {review.replies.map((reply, ridx) => (
+                        <div key={ridx} style={{ marginBottom: 10, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                          <div style={{ fontWeight: 600, color: '#2ecc71', fontSize: '1.05rem', minWidth: 32 }}>↳</div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, color: '#222', fontSize: '1.01rem', marginBottom: 2 }}>{reply.userName || reply.UserName || 'Shop Owner'}</div>
+                            <div style={{ color: '#444', fontSize: '1.01rem', marginBottom: 2 }}>{reply.Comment || reply.comment}</div>
+                            <div style={{ color: '#aaa', fontSize: '0.95rem' }}>{reply.CreatedAt ? new Date(reply.CreatedAt).toLocaleDateString() : (reply.created_at ? new Date(reply.created_at).toLocaleDateString() : '')}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))

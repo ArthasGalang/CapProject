@@ -1,6 +1,7 @@
 import Header from "../Components/Header";
 import Footer from "../Components/Footer";
 import AccountSidebar from "../Components/AccountSidebar";
+import FloatingChatButton from "../Components/FloatingChatButton";
 
 const AccountSettings = () => {
   return (
@@ -35,7 +36,8 @@ const AccountSettings = () => {
           </div>
         </section>
       </div>
-      <Footer />
+  <FloatingChatButton onClick={() => alert('Open chat window')} />
+  <Footer />
     </>
   );
 };

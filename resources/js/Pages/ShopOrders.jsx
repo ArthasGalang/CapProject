@@ -1,6 +1,44 @@
 
 
 import React, { useEffect, useState } from 'react';
+// Status progression array
+const STATUS_FLOW = ['To Pay', 'Preparing', 'For Pickup/Delivery', 'Completed'];
+  // Function to get the next status
+  const getNextStatus = (currentStatus) => {
+    const idx = STATUS_FLOW.indexOf(currentStatus);
+    if (idx === -1 || idx === STATUS_FLOW.length - 1) return currentStatus;
+    return STATUS_FLOW[idx + 1];
+  };
+
+  // Function to handle Next button click
+  const handleNextStatus = (order) => {
+    const nextStatus = getNextStatus(order.Status);
+    if (nextStatus === order.Status) return; // Already at final status
+    // Optimistically update UI
+    setOrders(prevOrders => prevOrders.map(o =>
+      o.OrderID === order.OrderID ? { ...o, Status: nextStatus } : o
+    ));
+    // Send update to backend
+    fetch(`/api/orders/${order.OrderID}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: nextStatus })
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to update status');
+        return res.json();
+      })
+      .then(data => {
+        // Optionally update state with backend response
+      })
+      .catch(err => {
+        // Revert UI if error
+        setOrders(prevOrders => prevOrders.map(o =>
+          o.OrderID === order.OrderID ? { ...o, Status: order.Status } : o
+        ));
+        alert('Failed to update status: ' + err.message);
+      });
+  };
 import Header from '../Components/Header';
 import Footer from '../Components/Footer';
 import ShopSidebar from '../Components/ShopSidebar';
@@ -20,6 +58,7 @@ const ShopOrders = () => {
         return res.json();
       })
       .then((data) => {
+        console.log('Fetched orders:', data);
         setOrders(data);
         setLoading(false);
       })
@@ -29,8 +68,9 @@ const ShopOrders = () => {
       });
   }, []);
 
-  // Filter orders for this shop owner
-  const filteredOrders = orders.filter(order => order.ShopOwnerID == sessionUserId);
+  // Log session user id and orders for debugging
+  console.log('Session User ID:', sessionUserId);
+  console.log('Orders state:', orders);
 
   return (
     <>
@@ -74,17 +114,27 @@ const ShopOrders = () => {
                         <tr><td colSpan="6">Loading...</td></tr>
                       ) : error ? (
                         <tr><td colSpan="6" style={{ color: 'red' }}>Error: {error}</td></tr>
-                      ) : filteredOrders.length === 0 ? (
+                      ) : orders.length === 0 ? (
                         <tr><td colSpan="6">No orders found.</td></tr>
                       ) : (
-                        filteredOrders.map(order => (
+                        orders.map(order => (
                           <tr key={order.OrderID}>
                             <td>#{order.OrderID}</td>
                             <td>{order.CustomerName}</td>
-                            <td>{new Date(order.OrderDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</td>
-                            <td>P{Number(order.TotalPrice).toFixed(2)}</td>
-                            <td><span className={`order-status order-status--${order.Status.toLowerCase()}`}>{order.Status}</span></td>
-                            <td><button className="order-action-btn">Details</button></td>
+                            <td>{order.OrderDate ? new Date(order.OrderDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : ''}</td>
+                            <td>P{order.TotalPrice ? Number(order.TotalPrice).toFixed(2) : ''}</td>
+                            <td><span className={`order-status order-status--${order.Status ? order.Status.toLowerCase() : ''}`}>{order.Status}</span></td>
+                            <td>
+                              <button className="order-action-btn" style={{ fontSize: '0.85rem', padding: '0.3rem 0.7rem', marginRight: '0.5rem' }}>Details</button>
+                              <button
+                                className="order-action-btn"
+                                style={{ fontSize: '0.85rem', padding: '0.3rem 0.7rem' }}
+                                onClick={() => handleNextStatus(order)}
+                                disabled={order.Status === 'Completed'}
+                              >
+                                Next
+                              </button>
+                            </td>
                           </tr>
                         ))
                       )}

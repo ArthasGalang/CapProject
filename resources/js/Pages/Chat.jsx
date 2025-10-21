@@ -4,17 +4,21 @@ const Chat = ({ userId, otherId }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
 
+
   useEffect(() => {
     // Fetch chat history
-    fetch(`/api/messages?other_id=${otherId}`, {
+    fetch(`/api/messages?sender_id=${userId}&other_id=${otherId}`, {
       headers: { 'Accept': 'application/json' }
     })
       .then(res => res.json())
-      .then(setMessages);
+      .then(data => {
+        setMessages(Array.isArray(data) ? data : []);
+      });
 
     // Listen for new messages
     window.Echo.channel(`chat.${userId}`)
       .listen('MessageSent', (e) => {
+        console.log('Received MessageSent event:', e);
         setMessages(msgs => [...msgs, e.message]);
       });
 
@@ -25,13 +29,20 @@ const Chat = ({ userId, otherId }) => {
   }, [userId, otherId]);
 
   const sendMessage = async () => {
+    // Add sent message to state immediately
+    const newMsg = {
+      SenderID: userId,
+      MessageBody: input,
+      MessageID: Date.now(), // Temporary unique ID
+    };
+    setMessages(msgs => [...msgs, newMsg]);
     await fetch('/api/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({ receiver_id: otherId, message: input })
+      body: JSON.stringify({ sender_id: userId, receiver_id: otherId, message: input })
     });
     setInput('');
   };

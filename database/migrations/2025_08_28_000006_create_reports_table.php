@@ -14,7 +14,7 @@ return new class extends Migration
                   ->constrained('users', 'UserID') 
                   ->onDelete('cascade');
             $table->string('Reason');
-            $table->enum('ReportStatus', ['Pending', 'InReview', 'Resolved', 'Rejected']);
+            $table->enum('ReportStatus', ['Pending', 'In Review', 'Resolved', 'Rejected']);
             $table->date('ReportDate');
             $table->string('AdminResponse');
             $table->string('ReportedLink');

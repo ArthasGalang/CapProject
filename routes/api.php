@@ -1,6 +1,4 @@
 
-
-
 <?php
 
 use Illuminate\Http\Request;
@@ -17,6 +15,27 @@ use App\Http\Controllers\CartItemController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\AddressController;
 
+use App\Models\User;
+use App\Http\Controllers\UserMessageController;
+// User messages API (for chat)
+Route::get('/usermessages', [UserMessageController::class, 'index']);
+Route::post('/usermessages', [UserMessageController::class, 'store']);
+
+// Announcements API (dummy, replace with real data as needed)
+Route::get('/announcements', function() {
+    // TODO: Replace with actual announcement fetching logic
+    return response()->json([]);
+});
+
+Route::get('/user/{id}', function($id) {
+    $user = User::find($id);
+    if (!$user) return response()->json(['error' => 'User not found'], 404);
+    return response()->json([
+        'FirstName' => $user->FirstName,
+        'LastName' => $user->LastName,
+        'UserID' => $user->UserID
+    ]);
+});
 
 
 
@@ -24,11 +43,9 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-// Chat message routes
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/messages', [MessageController::class, 'index']);
-    Route::post('/messages', [MessageController::class, 'store']);
-});
+// Chat message routes (no auth for testing)
+Route::get('/messages', [MessageController::class, 'index']);
+Route::post('/messages', [MessageController::class, 'store']);
 
 
 Route::get('/addresses', [AddressController::class, 'getUserAddresses']);

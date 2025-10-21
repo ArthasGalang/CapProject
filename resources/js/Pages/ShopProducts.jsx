@@ -43,7 +43,7 @@ const ShopProducts = ({ shopId }) => {
   const [detailsProduct, setDetailsProduct] = useState(null);
   const [detailsImageIndex, setDetailsImageIndex] = useState(0);
   const [detailsEditMode, setDetailsEditMode] = useState(false);
-  const [detailsTab, setDetailsTab] = useState('details'); // 'details' or 'metrics'
+  // Only details tab now
   // Open details modal
   const openDetails = (product) => {
     // Log raw AdditionalImages value from the product row (DB) for debugging
@@ -72,7 +72,7 @@ const ShopProducts = ({ shopId }) => {
     setShowDetails(true);
     setDetailsImageIndex(0);
     setDetailsEditMode(false);
-    setDetailsTab('details');
+  // Only details tab now
   };
 
   // Close details modal
@@ -81,7 +81,7 @@ const ShopProducts = ({ shopId }) => {
     setDetailsProduct(null);
     setDetailsImageIndex(0);
     setDetailsEditMode(false);
-    setDetailsTab('details');
+  // Only details tab now
   };
 
   // Ref for hidden file input in details modal
@@ -763,17 +763,22 @@ const ShopProducts = ({ shopId }) => {
               <div style={{flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: 0}}>
                 <div style={{fontSize: 22, fontWeight: 700, marginBottom: 2, color: '#222'}}>{detailsProduct.ProductName}</div>
                 <div style={{color: '#888', marginBottom: 16, fontSize: 15}}>SKU: <span style={{color: '#444'}}>{detailsProduct.SKU || detailsProduct.Sku || '-'}</span></div>
-                {/* Tabs */}
-                <div style={{display: 'flex', gap: 32, borderBottom: '2px solid #e0e0e0', marginBottom: 18}}>
-                  <button onClick={() => setDetailsTab('details')} style={{background: 'none', border: 'none', fontSize: 18, fontWeight: 700, color: detailsTab === 'details' ? '#2ecc71' : '#bbb', borderBottom: detailsTab === 'details' ? '2px solid #2ecc71' : '2px solid transparent', paddingBottom: 6, cursor: 'pointer'}}>Details</button>
-                  <button onClick={() => setDetailsTab('metrics')} style={{background: 'none', border: 'none', fontSize: 18, fontWeight: 700, color: detailsTab === 'metrics' ? '#2ecc71' : '#bbb', borderBottom: detailsTab === 'metrics' ? '2px solid #2ecc71' : '2px solid transparent', paddingBottom: 6, cursor: 'pointer'}}>Metrics</button>
-                </div>
-                {detailsTab === 'details' ? (
+                {/* Only Details Tab (Metrics removed) */}
                   <div style={{display: 'flex', flexDirection: 'column', gap: 0}}>
                     <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: 10, columnGap: 24, marginBottom: 12}}>
                       <div style={{fontSize: 15, color: '#666'}}>Category:<br />
                         {detailsEditMode ? (
-                          <input value={detailsProduct.CategoryName || detailsProduct.CategoryID || ''} onChange={(e) => setDetailsProduct(p => ({ ...p, CategoryName: e.target.value }))} style={{width: '100%', border: '1px solid #ccc', borderRadius: 6, padding: 8, fontSize: 15, marginTop: 2}} />
+                          <select
+                            value={detailsProduct.CategoryID || ''}
+                            onChange={e => setDetailsProduct(p => ({ ...p, CategoryID: e.target.value, CategoryName: (categories.find(cat => String(cat.CategoryID || cat.id) === e.target.value)?.CategoryName || '') }))}
+                            required
+                            style={{width: '100%', border: '1px solid #ccc', borderRadius: 6, padding: 8, fontSize: 15, marginTop: 2}}
+                          >
+                            <option value="" disabled>Select category</option>
+                            {categories.map(cat => (
+                              <option key={cat.CategoryID || cat.id} value={cat.CategoryID || cat.id}>{cat.CategoryName || cat.name}</option>
+                            ))}
+                          </select>
                         ) : (
                           <span style={{fontWeight: 600, color: '#222'}}>{detailsProduct.CategoryName || detailsProduct.CategoryID || '-'}</span>
                         )}
@@ -824,9 +829,7 @@ const ShopProducts = ({ shopId }) => {
                       )}
                     </div>
                   </div>
-                ) : (
-                  <div style={{padding: 24, color: '#bbb', fontSize: 18}}>Metrics tab content coming soon...</div>
-                )}
+              
               </div>
             </div>
             {/* Removed bottom close button */}
