@@ -1,5 +1,6 @@
 import React from "react";
 import CreateShop from "./CreateShop";
+import ShopListModal from "./ShopListModal";
 import LoginRegister from "./LoginRegister";
 import { ShoppingCart, User, Search } from "lucide-react";
 
@@ -287,80 +288,13 @@ const Header = () => {
         />
       )}
       {/* Shop Modal */}
-      {showShopModal && !showCreateShop && (
-        <div className="shop-modal-overlay">
-          <div className="shop-modal">
-            <button onClick={() => setShowShopModal(false)} className="shop-modal-close">&times;</button>
-            <h2 className="shop-modal-title">Shops</h2>
-            {/* Loading animation while fetching shops */}
-            {shopsLoading ? (
-              <div style={{textAlign: 'center', margin: '1.2rem 0', color: '#888'}}>
-                <span className="shop-modal-loading-spinner" style={{display:'inline-block',width:32,height:32,border:'4px solid #eee',borderTop:'4px solid #28b864',borderRadius:'50%',animation:'spin 1s linear infinite'}}></span>
-                <style>{`@keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }`}</style>
-                <div>Loading shops...</div>
-              </div>
-            ) : (
-              <>
-                {shops.filter(shop => shop.name && shop.name.trim()).length === 0 ? (
-                  <div style={{textAlign: 'center', margin: '1.2rem 0', color: '#888'}}>No shops found.</div>
-                ) : (
-                  shops.filter(shop => shop.name && shop.name.trim()).map(shop => (
-                    <button
-                      key={shop.id}
-                      className="shop-modal-shop-btn"
-                      onMouseEnter={e => (e.currentTarget.style.background = '#28b864ff')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-primary)')}
-                      onClick={() => {
-                        const shopId = shop.ShopID || shop.id;
-                        const url = `/eshop/${shopId}/dashboard`;
-                        if (window.Inertia) {
-                          window.Inertia.visit(url);
-                        } else {
-                          window.location.href = url;
-                        }
-                      }}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div className="shop-modal-shop-icon">
-                          {shop.logoUrl ? (
-                            <img src={shop.logoUrl} alt={shop.name} className="shop-logo-circle" />
-                          ) : (
-                            <span className="shop-logo-placeholder"></span>
-                          )}
-                        </div>
-                        {shop.name}
-                      </div>
-                      <span style={{ marginLeft: 16, fontWeight: 500, color: shop.isVerified ? '#2ECC71' : 'red', fontSize: '0.98rem' }}>
-                        {shop.isVerified ? 'Verified' : 'Unverified'}
-                      </span>
-                    </button>
-                  ))
-                )}
-                {/* Add Shop: Show if shops are loaded and less than 3 exist */}
-                {shops && Array.isArray(shops) && shops.length < 3 && (
-                  <div className="shop-modal-add-wrapper">
-                    <button
-                      className="shop-modal-add-btn"
-                      onClick={() => setShowCreateShop(true)}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.background = 'var(--color-primary)';
-                        e.currentTarget.style.color = '#fff';
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.background = '#fff';
-                        e.currentTarget.style.color = 'var(--color-primary)';
-                      }}
-                    >
-                      <span className="shop-modal-add-icon">+</span>
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      <ShopListModal
+        open={showShopModal && !showCreateShop}
+        onClose={() => setShowShopModal(false)}
+        onOpenCreateShop={() => setShowCreateShop(true)}
+        shops={shops}
+        shopsLoading={shopsLoading}
+      />
     </>
   );
 };

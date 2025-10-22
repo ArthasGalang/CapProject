@@ -92,6 +92,9 @@ Route::get('/shop/{id}', function ($id) {
 Route::get('/eshop/{id}/dashboard', function ($id) {
     return Inertia::render('ShopDashboard', ['shopId' => $id]);
 });
+Route::get('/eshop/{id}/details', function ($id) {
+    return Inertia::render('ShopDetails', ['shopId' => $id]);
+});
 Route::get('/eshop/{id}/products', function ($id) {
     return Inertia::render('ShopProducts', ['shopId' => $id]);
 });

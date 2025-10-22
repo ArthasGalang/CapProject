@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from "react";
 import FloatingChatButton from "../Components/FloatingChatButton";
 import Header from "@/Components/Header";
+import ShopListModal from "../Components/ShopListModal";
+import CreateShop from "../Components/CreateShop";
 import AuthModal from "@/Components/AuthModal";
 import ProductCard from "../Components/ProductCard";
 import Toast from "../Components/Toast";
@@ -34,6 +36,10 @@ const Landing = () => {
     const [activeIdx, setActiveIdx] = useState(0);
     const activeCategory = categories[activeIdx];
     const [showModal, setShowModal] = useState(false);
+    const [showShopModal, setShowShopModal] = useState(false);
+    const [showCreateShop, setShowCreateShop] = useState(false);
+    const [shops, setShops] = useState([]);
+    const [shopsLoading, setShopsLoading] = useState(false);
     const [modalTab, setModalTab] = useState('login'); // 'login' or 'register'
     const [hoveredIdx, setHoveredIdx] = useState(null);
     const [productsByCategory, setProductsByCategory] = useState({});
@@ -98,11 +104,44 @@ const Landing = () => {
 
     // Check if user is logged in
     let isLoggedIn = false;
+    let userId = null;
     try {
         isLoggedIn = !!localStorage.getItem('user');
+        const userData = localStorage.getItem('authToken') ? JSON.parse(localStorage.getItem('user')) : null;
+        userId = userData && (userData.UserID || userData.id);
     } catch (e) {
         isLoggedIn = false;
+        userId = null;
     }
+
+    // Fetch shops for userId when shop modal opens
+    useEffect(() => {
+        if (showShopModal && userId) {
+            setShopsLoading(true);
+            fetch(`http://127.0.0.1:8000/api/shops?user_id=${userId}`)
+                .then(res => res.json())
+                .then(data => {
+                    const mapped = Array.isArray(data)
+                        ? data.filter(shop => shop.UserID == userId)
+                            .map(shop => ({
+                                id: shop.ShopID || shop.id,
+                                name: shop.ShopName || shop.name,
+                                logoUrl: shop.LogoImage ? `/storage/${shop.LogoImage.replace(/^storage\//, '')}` : shop.logoUrl,
+                            }))
+                        : [];
+                    setShops(mapped);
+                    setShopsLoading(false);
+                })
+                .catch(() => {
+                    setShops([]);
+                    setShopsLoading(false);
+                });
+        }
+        if (!showShopModal) {
+            setShops([]);
+            setShopsLoading(false);
+        }
+    }, [showShopModal, userId]);
 
     return (
         <>
@@ -118,7 +157,15 @@ const Landing = () => {
             <section className="heroSection">
                 <h1 className="heroTitle">Experience Community Commerce at its Finest</h1>
                 <h3 className="heroSubtitle">Your gateway to local treasures in Barangay Gen T. De Leon</h3>
-                <div className="authButtons">
+                <div className="authButtons" style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center' }}>
+                    {/* Sell Now button always visible */}
+                    <button
+                        className="registerBtn"
+                        style={{ marginRight: 0 }}
+                        onClick={() => setShowShopModal(true)}
+                    >
+                        Sell Now
+                    </button>
                     {!isLoggedIn ? (
                         <>
                             <button className="registerBtn" onClick={() => { setShowModal(true); setModalTab('register'); }}>Register</button>
@@ -131,10 +178,27 @@ const Landing = () => {
             </section>
 
             <AuthModal
-                isOpen={showModal}
+                isOpen={showModal === true}
                 onClose={() => setShowModal(false)}
                 initialTab={modalTab}
             />
+            {/* Shop List Modal (actual modal, like in Header) */}
+            <ShopListModal
+                open={showShopModal && !showCreateShop}
+                onClose={() => setShowShopModal(false)}
+                onOpenCreateShop={() => setShowCreateShop(true)}
+                shops={shops}
+                shopsLoading={shopsLoading}
+            />
+            {showCreateShop && (
+                <CreateShop
+                    onClose={() => setShowCreateShop(false)}
+                    onShopCreated={() => {
+                        setShowCreateShop(false);
+                        setShowShopModal(true);
+                    }}
+                />
+            )}
 
 
             {/* Categories Carousel Section */}

@@ -25,6 +25,14 @@ const ShopSidebar = ({ active = "dashboard", shopId }) => {
       ),
     },
     {
+      key: "details",
+      label: "Details",
+      href: `/eshop/${id}/details`,
+      icon: (
+        <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="15" rx="3"/><rect x="9" y="2" width="6" height="5" rx="2"/><circle cx="12" cy="14" r="4"/></svg>
+      ),
+    },
+    {
       key: "products",
       label: "Products",
       href: `/eshop/${id}/products`,

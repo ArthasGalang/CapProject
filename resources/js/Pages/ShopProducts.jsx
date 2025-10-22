@@ -107,16 +107,19 @@ const ShopProducts = ({ shopId }) => {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   useEffect(() => {
     if (shopId) {
+      setLoading(true);
       fetch(`/api/products?shop_id=${shopId}`)
         .then(res => res.json())
         .then(data => setProducts(Array.isArray(data) ? data : []))
-        .catch(() => setProducts([]));
+        .catch(() => setProducts([]))
+        .finally(() => setLoading(false));
     }
   }, [shopId]);
 
@@ -601,7 +604,15 @@ const ShopProducts = ({ shopId }) => {
                 </div>
               </div>
               {/* Conditional rendering for list or grid view */}
-              {viewMode === 'grid' ? (
+              {loading ? (
+                <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 180 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: 36, height: 36, border: '4px solid #e0f7ef', borderTop: '4px solid #22c55e', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                    <span style={{ color: '#1b8a44', marginTop: 12, fontWeight: 500, fontSize: 15 }}>Loading...</span>
+                    <style>{`@keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }`}</style>
+                  </div>
+                </div>
+              ) : viewMode === 'grid' ? (
                 <>
                 <div className="shop-products-grid">
                   {paginatedProducts.length > 0 ? (

@@ -141,6 +141,7 @@ const ProductDetails = () => {
   // Log product object for debugging
   console.log('Product object:', product);
 
+
   // Defensive: Normalize reviews and replies to always be arrays
   const reviews = Array.isArray(product?.reviews) ? product.reviews : (product?.reviews ? [product.reviews] : []);
   for (const r of reviews) {
@@ -148,6 +149,21 @@ const ProductDetails = () => {
       r.replies = r.replies ? [r.replies] : [];
     }
   }
+
+  // Log reviews and replies after product is set
+  React.useEffect(() => {
+    if (reviews && reviews.length > 0) {
+      console.log('Normalized reviews:', reviews);
+      reviews.forEach((review, idx) => {
+        console.log(`Review #${idx + 1}:`, review);
+        if (review && review.replies) {
+          console.log(`Replies for review #${idx + 1}:`, review.replies);
+        }
+      });
+    } else {
+      console.log('No reviews found for this product.');
+    }
+  }, [product]);
 
   if (!product) {
     return (
