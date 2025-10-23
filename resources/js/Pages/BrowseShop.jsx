@@ -8,20 +8,38 @@ const BrowseShop = () => {
     const [page, setPage] = React.useState(1);
     const [hasMore, setHasMore] = React.useState(true);
     const [sortField, setSortField] = React.useState('newest');
+    const [categoryFilter, setCategoryFilter] = React.useState('all');
+    const [categories, setCategories] = React.useState([]);
+    const [verifiedFilter, setVerifiedFilter] = React.useState('all'); // 'all', 'verified', 'unverified'
     const [loading, setLoading] = React.useState(true);
     const [scrollLoading, setScrollLoading] = React.useState(false);
     const PAGE_SIZE = 20;
 
     // Fetch shops paginated and resolve addresses
-    const fetchShops = async (pageNum = 1, sort = sortField, isScroll = false) => {
+    const fetchShops = async (pageNum = 1, sort = sortField, isScroll = false, verified = verifiedFilter, category = categoryFilter) => {
         if (isScroll) setScrollLoading(true);
         else setLoading(true);
+        // Always fetch all shops for category filtering (client-side)
         const res = await fetch(`/api/shops?page=${pageNum}&limit=${PAGE_SIZE}`);
         let data = await res.json();
+        // Filter by verified/unverified
+        if (verified === 'verified') data = data.filter(shop => shop.isVerified);
+        if (verified === 'unverified') data = data.filter(shop => !shop.isVerified);
+
+        // Category filter: fetch all products and filter shops that have at least one product in the selected category
+        if (category !== 'all') {
+            try {
+                const productsRes = await fetch('/api/products?limit=9999');
+                const products = await productsRes.json();
+                const shopIdsWithCategory = new Set(products.filter(p => String(p.CategoryID) === String(category)).map(p => p.ShopID));
+                data = data.filter(shop => shopIdsWithCategory.has(shop.ShopID));
+            } catch (e) { /* ignore */ }
+        }
+
         // Sort client-side (can be moved to backend if needed)
         if (sort === 'name-asc') data.sort((a, b) => (a.ShopName || '').localeCompare(b.ShopName || ''));
         if (sort === 'name-desc') data.sort((a, b) => (b.ShopName || '').localeCompare(a.ShopName || ''));
-        if (sort === 'newest') data.sort((a, b) => (b.ShopID || 0) - (a.ShopID || 0));
+        if (sort === 'newest') data.sort((b, a) => (a.ShopID || 0) - (b.ShopID || 0));
         // Fetch addresses for each shop
         const shopsWithAddress = await Promise.all(data.map(async shop => {
             let address = null;
@@ -56,11 +74,25 @@ const BrowseShop = () => {
     React.useEffect(() => {
         setPage(1);
         setHasMore(true);
-        fetchShops(1, sortField);
-    }, [sortField]);
+        fetchShops(1, sortField, false, verifiedFilter, categoryFilter);
+    }, [sortField, verifiedFilter, categoryFilter]);
+
+    // Fetch categories for filter dropdown
+    React.useEffect(() => {
+        fetch('/api/categories')
+            .then(res => res.json())
+            .then(data => setCategories(data))
+            .catch(() => setCategories([]));
+    }, []);
 
     const handleSortChange = (field) => {
         setSortField(field);
+        setPage(1);
+        setHasMore(true);
+    };
+
+    const handleVerifiedFilterChange = (e) => {
+        setVerifiedFilter(e.target.value);
         setPage(1);
         setHasMore(true);
     };
@@ -77,7 +109,7 @@ const BrowseShop = () => {
             if (scrollHeight - scrollTop - clientHeight < 120) {
                 setPage(prev => {
                     const nextPage = prev + 1;
-                    fetchShops(nextPage, sortField, true);
+                    fetchShops(nextPage, sortField, true, verifiedFilter, categoryFilter);
                     return nextPage;
                 });
             }
@@ -86,7 +118,7 @@ const BrowseShop = () => {
         return () => {
             card.removeEventListener('scroll', onScroll);
         };
-    }, [hasMore, sortField, page, scrollLoading]);
+    }, [hasMore, sortField, page, scrollLoading, verifiedFilter, categoryFilter]);
 
     return (
         <>
@@ -117,6 +149,33 @@ const BrowseShop = () => {
                     <div style={{ marginBottom: '20px' }}>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Location</label>
                         <input type="text" placeholder="e.g. Valenzuela, Manila" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }} />
+                    </div>
+                    {/* Category Filter */}
+                    <div style={{ marginBottom: '20px' }}>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Category</label>
+                        <select
+                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }}
+                            value={categoryFilter}
+                            onChange={e => setCategoryFilter(e.target.value)}
+                        >
+                            <option value="all">All</option>
+                            {categories.map(cat => (
+                                <option key={cat.CategoryID} value={cat.CategoryID}>{cat.CategoryName}</option>
+                            ))}
+                        </select>
+                    </div>
+                    {/* Verified Filter */}
+                    <div style={{ marginBottom: '20px' }}>
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Verified Status</label>
+                        <select
+                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }}
+                            value={verifiedFilter}
+                            onChange={handleVerifiedFilterChange}
+                        >
+                            <option value="all">All</option>
+                            <option value="verified">Verified</option>
+                            <option value="unverified">Unverified</option>
+                        </select>
                     </div>
                     {/* Tag Filter */}
                     <div style={{ marginBottom: '20px' }}>
@@ -191,6 +250,26 @@ const BrowseShop = () => {
                                                 overflow: 'hidden',
                                             }}
                                         >
+                                            {/* Verified/Unverified badge */}
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: 12,
+                                                right: 16,
+                                                zIndex: 2,
+                                                background: shop.isVerified ? '#eafff3' : '#fff3f3',
+                                                color: shop.isVerified ? '#27ae60' : '#e74c3c',
+                                                fontWeight: 600,
+                                                fontSize: '0.95rem',
+                                                padding: '4px 14px',
+                                                borderRadius: '16px',
+                                                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                                                letterSpacing: '0.5px',
+                                                userSelect: 'none',
+                                                border: shop.isVerified ? '1.5px solid #2ecc71' : '1.5px solid #e74c3c',
+                                                transition: 'background 0.2s, color 0.2s',
+                                            }}>
+                                                {shop.isVerified ? 'Verified' : 'Unverified'}
+                                            </div>
                                             {/* Banner background */}
                                             <div style={{
                                                 width: '100%',
