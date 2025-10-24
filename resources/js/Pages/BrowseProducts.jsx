@@ -10,15 +10,23 @@ import Footer from "../Components/Footer";
 const BrowseProducts = () => {
 
     const [products, setProducts] = React.useState([]);
+    const [allProducts, setAllProducts] = React.useState([]); // for client-side filtering
     const [hoveredIdx, setHoveredIdx] = React.useState(null);
     const [page, setPage] = React.useState(1);
     const [hasMore, setHasMore] = React.useState(true);
     const [sortField, setSortField] = React.useState('newest');
     const [loading, setLoading] = React.useState(true);
     const [scrollLoading, setScrollLoading] = React.useState(false);
+    // Filter states
+    const [category, setCategory] = React.useState('All');
+    const [minPrice, setMinPrice] = React.useState('');
+    const [maxPrice, setMaxPrice] = React.useState('');
+    const [rating, setRating] = React.useState('');
+    const [search, setSearch] = React.useState('');
+    const [tags, setTags] = React.useState('');
     const PAGE_SIZE = 20;
 
-    // Fetch products paginated
+    // Fetch all products (for filtering)
     const fetchProducts = async (pageNum = 1, sort = sortField, isScroll = false) => {
         if (isScroll) setScrollLoading(true);
         else setLoading(true);
@@ -37,18 +45,10 @@ const BrowseProducts = () => {
         data.forEach(p => {
             p.avgRating = ratingsMap[p.ProductID]?.avg || null;
         });
-        // Sort client-side (can be moved to backend if needed)
-        if (sort === 'price-asc') data.sort((a, b) => (a.Price || 0) - (b.Price || 0));
-        if (sort === 'price-desc') data.sort((a, b) => (b.Price || 0) - (a.Price || 0));
-        if (sort === 'name-asc') data.sort((a, b) => (a.ProductName || '').localeCompare(b.ProductName || ''));
-        if (sort === 'name-desc') data.sort((a, b) => (b.ProductName || '').localeCompare(a.ProductName || ''));
-        // Newest: assume ProductID is incrementing
-        if (sort === 'newest') data.sort((a, b) => (b.ProductID || 0) - (a.ProductID || 0));
-        if (data.length < PAGE_SIZE) setHasMore(false);
         if (pageNum === 1) {
-            setProducts(data);
+            setAllProducts(data); // store for filtering
         } else {
-            setProducts(prev => [...prev, ...data]);
+            setAllProducts(prev => [...prev, ...data]);
         }
         if (isScroll) setScrollLoading(false);
         else setLoading(false);
@@ -60,11 +60,53 @@ const BrowseProducts = () => {
         fetchProducts(1, sortField);
     }, [sortField]);
 
+    // Filtering logic
+    React.useEffect(() => {
+        let filtered = allProducts;
+        if (category && category !== 'All') {
+            filtered = filtered.filter(p => p.CategoryName === category);
+        }
+        if (minPrice) {
+            filtered = filtered.filter(p => Number(p.Price) >= Number(minPrice));
+        }
+        if (maxPrice) {
+            filtered = filtered.filter(p => Number(p.Price) <= Number(maxPrice));
+        }
+        if (rating) {
+            filtered = filtered.filter(p => Number(p.avgRating) >= Number(rating));
+        }
+        if (search) {
+            filtered = filtered.filter(p => (p.ProductName || '').toLowerCase().includes(search.toLowerCase()));
+        }
+        if (tags) {
+            const tagArr = tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+            if (tagArr.length > 0) {
+                filtered = filtered.filter(p => tagArr.every(tag => (p.Description || '').toLowerCase().includes(tag)));
+            }
+        }
+        // Sort client-side
+        let sorted = [...filtered];
+        if (sortField === 'price-asc') sorted.sort((a, b) => (a.Price || 0) - (b.Price || 0));
+        if (sortField === 'price-desc') sorted.sort((a, b) => (b.Price || 0) - (a.Price || 0));
+        if (sortField === 'name-asc') sorted.sort((a, b) => (a.ProductName || '').localeCompare(b.ProductName || ''));
+        if (sortField === 'name-desc') sorted.sort((a, b) => (b.ProductName || '').localeCompare(a.ProductName || ''));
+        if (sortField === 'newest') sorted.sort((a, b) => (b.ProductID || 0) - (a.ProductID || 0));
+        setProducts(sorted);
+    }, [allProducts, category, minPrice, maxPrice, rating, search, tags, sortField]);
+
     const handleSortChange = (field) => {
         setSortField(field);
         setPage(1);
         setHasMore(true);
     };
+
+    // Filter input handlers
+    const handleCategoryChange = e => setCategory(e.target.value);
+    const handleMinPriceChange = e => setMinPrice(e.target.value);
+    const handleMaxPriceChange = e => setMaxPrice(e.target.value);
+    const handleRatingChange = e => setRating(e.target.value);
+    const handleSearchChange = e => setSearch(e.target.value);
+    const handleTagsChange = e => setTags(e.target.value);
 
     // Infinite scroll logic
     const cardRef = React.useRef(null);
@@ -99,7 +141,7 @@ const BrowseProducts = () => {
                     {/* Category */}
                     <div style={{ marginBottom: '20px' }}>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Category</label>
-                        <select style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }}>
+                        <select style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }} value={category} onChange={handleCategoryChange}>
                             <option>All</option>
                             <option>Electronics</option>
                             <option>Books</option>
@@ -132,23 +174,23 @@ const BrowseProducts = () => {
                     {/* Product Name Search */}
                     <div style={{ marginBottom: '20px' }}>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Search</label>
-                        <input type="text" placeholder="Product name..." style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }} />
+                        <input type="text" placeholder="Product name..." style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }} value={search} onChange={handleSearchChange} />
                     </div>
                     {/* Price Range */}
                     <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
                         <div style={{ flex: 1 }}>
                             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Min Price</label>
-                            <input type="number" placeholder="₱0" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }} />
+                            <input type="number" placeholder="₱0" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }} value={minPrice} onChange={handleMinPriceChange} />
                         </div>
                         <div style={{ flex: 1 }}>
                             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Max Price</label>
-                            <input type="number" placeholder="₱99999" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }} />
+                            <input type="number" placeholder="₱99999" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }} value={maxPrice} onChange={handleMaxPriceChange} />
                         </div>
                     </div>
                     {/* Rating */}
                     <div style={{ marginBottom: '20px' }}>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Rating</label>
-                        <select style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }}>
+                        <select style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }} value={rating} onChange={handleRatingChange}>
                             <option value="">Any</option>
                             <option value="5">5 ★</option>
                             <option value="4">4 ★ & up</option>
@@ -165,10 +207,11 @@ const BrowseProducts = () => {
                     {/* Tags */}
                     <div style={{ marginBottom: '20px' }}>
                         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Tags</label>
-                        <input type="text" placeholder="e.g. sale, new, popular" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }} />
+                        <input type="text" placeholder="e.g. sale, new, popular" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }} value={tags} onChange={handleTagsChange} />
                     </div>
                     {/* Apply Button */}
                     <button
+                        onClick={() => {}} // filters are live, so no need to trigger fetch
                         onMouseEnter={e => e.currentTarget.style.background = '#229954'}
                         onMouseLeave={e => e.currentTarget.style.background = '#2ECC71'}
                         style={{

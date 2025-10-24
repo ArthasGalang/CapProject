@@ -14,17 +14,27 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\CartItemController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\AddressController;
-
+use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Http\Controllers\UserMessageController;
+use App\Http\Controllers\ShopDashboardController;
 // User messages API (for chat)
 Route::get('/usermessages', [UserMessageController::class, 'index']);
 Route::post('/usermessages', [UserMessageController::class, 'store']);
 
+Route::get('/reviews_with_replies/{ProductID}', function($ProductID) {
+    $results = DB::select('SELECT * FROM reviews_with_replies WHERE ProductID = ?', [$ProductID]);
+    return response()->json($results);
+});
 // Announcements API (dummy, replace with real data as needed)
 Route::get('/announcements', function() {
     // TODO: Replace with actual announcement fetching logic
     return response()->json([]);
+});
+
+Route::get('/shop_dashboard_view', function () {
+    $data = DB::select('SELECT * FROM shop_dashboard_view');
+    return response()->json($data);
 });
 
 Route::get('/user/{id}', function($id) {
@@ -66,7 +76,7 @@ Route::delete('/cart-items/{id}', [CartItemController::class, 'destroy']);
 
 // Orders API: Get authenticated user's orders with items and products
 Route::get('/orders', [OrderController::class, 'userOrders']);
-Route::post('/orders/multi-shop', [OrderController::class, 'storeMultiShop']);
+Route::post('/orders/multi-shop', [OrderController::class, 'store']);
 Route::get('/orders/multi-shop', function() {
     return response()->json(['error' => 'GET not supported for this route. Use POST.'], 405);
 });
@@ -196,3 +206,4 @@ Route::patch('/cart-items/{id}', [CartItemController::class, 'update']);
 
 // Get cart items count for authenticated user
 Route::middleware('auth:sanctum')->get('/cart-items/count', [CartController::class, 'countForAuthUser']);
+Route::get('/shop-dashboard', [ShopDashboardController::class, 'index']);

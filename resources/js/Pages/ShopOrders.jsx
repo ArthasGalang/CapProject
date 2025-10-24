@@ -43,15 +43,15 @@ import Header from '../Components/Header';
 import Footer from '../Components/Footer';
 import ShopSidebar from '../Components/ShopSidebar';
 
-const ShopOrders = () => {
+const ShopOrders = (props) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Get session user id (assume it's available globally, e.g., window.sessionUserId)
-  const sessionUserId = window.sessionUserId;
+  // Get shopId from props (passed by Inertia)
+  const shopId = props.shopId;
 
   useEffect(() => {
     fetch('/api/shop-orders')
@@ -60,8 +60,10 @@ const ShopOrders = () => {
         return res.json();
       })
       .then((data) => {
-        console.log('Fetched orders:', data);
-        setOrders(data);
+        // Filter orders by shopId
+        const filtered = data.filter(order => order.ShopID == shopId);
+        console.log('Fetched orders:', filtered);
+        setOrders(filtered);
         setLoading(false);
       })
       .catch((err) => {
@@ -80,8 +82,8 @@ const ShopOrders = () => {
 
   const paginatedOrders = orders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  // Log session user id and orders for debugging
-  console.log('Session User ID:', sessionUserId);
+  // Log shopId and orders for debugging
+  console.log('Shop ID:', shopId);
   console.log('Orders state:', orders);
 
   return (

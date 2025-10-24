@@ -6,12 +6,18 @@ import Footer from "@/Components/Footer";
 import Toast from "@/Components/Toast";
 
 const ProductDetails = () => {
+  // Inline hover state for buttons (must be declared before any early returns)
+  const [buyNowHover, setBuyNowHover] = React.useState(false);
+  const [addToCartHover, setAddToCartHover] = React.useState(false);
+  const [visitShopHover, setVisitShopHover] = React.useState(false);
+  const [chatNowHover, setChatNowHover] = React.useState(false);
+
   const { ProductID } = usePage().props;
   const [product, setProduct] = useState(null);
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [quantity, setQuantity] = useState(1);
-    // Add to Cart state
-    const [addingToCart, setAddingToCart] = useState(false);
+  // Add to Cart state
+  const [addingToCart, setAddingToCart] = useState(false);
   const [cartMessage, setCartMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
 
@@ -33,6 +39,38 @@ const ProductDetails = () => {
         }
         setProduct(data);
       });
+
+    // Fetch the reviews_with_replies view for this product and log the result
+    fetch(`/api/reviews_with_replies/${ProductID}`)
+      .then(res => res.json())
+      .then(viewData => {
+        console.log('Fetched reviews_with_replies view:', viewData);
+        // If viewData is an array, parse Replies and RepliesContent for each row
+        if (Array.isArray(viewData)) {
+          viewData.forEach((row, idx) => {
+            console.log(`Review #${idx+1}:`, {
+              ReviewID: row.ReviewID,
+              ReviewerID: row.ReviewerID,
+              Rating: row.Rating,
+              ReviewContent: row.ReviewContent,
+              ReviewDate: row.ReviewDate
+            });
+            const replies = row.Replies ? row.Replies.split(',') : [];
+            const repliesContent = row.RepliesContent ? row.RepliesContent.split('|||') : [];
+            if (replies.length > 0) {
+              replies.forEach((replyId, i) => {
+                console.log(`  Reply #${i+1}:`, {
+                  ReplyID: replyId,
+                  Content: repliesContent[i] || ''
+                });
+              });
+            } else {
+              console.log('  No replies for this review.');
+            }
+          });
+        }
+      })
+      .catch(e => console.error('Error fetching reviews_with_replies view:', e));
   }, [ProductID]);
 
   // Carousel/image normalization logic must run (and its hooks declared)
@@ -142,28 +180,18 @@ const ProductDetails = () => {
   console.log('Product object:', product);
 
 
-  // Defensive: Normalize reviews and replies to always be arrays
-  const reviews = Array.isArray(product?.reviews) ? product.reviews : (product?.reviews ? [product.reviews] : []);
-  for (const r of reviews) {
-    if (r && !Array.isArray(r.replies)) {
-      r.replies = r.replies ? [r.replies] : [];
-    }
-  }
+  // State for reviews_with_replies view data
+  const [viewReviews, setViewReviews] = React.useState([]);
 
-  // Log reviews and replies after product is set
+  // Fetch and set reviews_with_replies view data
   React.useEffect(() => {
-    if (reviews && reviews.length > 0) {
-      console.log('Normalized reviews:', reviews);
-      reviews.forEach((review, idx) => {
-        console.log(`Review #${idx + 1}:`, review);
-        if (review && review.replies) {
-          console.log(`Replies for review #${idx + 1}:`, review.replies);
-        }
-      });
-    } else {
-      console.log('No reviews found for this product.');
-    }
-  }, [product]);
+    fetch(`/api/reviews_with_replies/${ProductID}`)
+      .then(res => res.json())
+      .then(viewData => {
+        setViewReviews(Array.isArray(viewData) ? viewData : []);
+      })
+      .catch(() => setViewReviews([]));
+  }, [ProductID]);
 
   if (!product) {
     return (
@@ -246,8 +274,15 @@ const ProductDetails = () => {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1.2rem', marginBottom: '1.2rem' }}>
               <span style={{ color: 'var(--color-primary)', fontWeight: 700, fontSize: '2rem' }}>₱{Number(product.price).toFixed(2)}</span>
-              <span style={{ color: '#FFD600', fontSize: '1.5rem', marginLeft: '1rem' }}>★</span>
-              <span style={{ fontWeight: 700, color: '#222', fontSize: '1.3rem' }}>{product.rating}</span>
+              {/* Rating display */}
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: '1rem' }}>
+                <span style={{ color: '#FFD600', fontSize: '1.5rem' }}>★</span>
+                <span style={{ fontWeight: 700, color: '#222', fontSize: '1.3rem' }}>
+                  {product.rating !== undefined && product.rating !== null && product.rating !== '' && !isNaN(product.rating) && Number(product.rating) > 0
+                    ? Number(product.rating).toFixed(2)
+                    : '0'}
+                </span>
+              </span>
               <span style={{ color: '#888', fontSize: '1.1rem' }}>({product.sold}) sold</span>
             </div>
             {/* Quantity Selector */}
@@ -267,14 +302,16 @@ const ProductDetails = () => {
                   fontWeight: 700,
                   fontSize: '1.15rem',
                   height: '48px',
-                  background: '#2ecc71',
-                  color: '#fff',
+                  background: buyNowHover ? '#fff' : '#2ecc71',
+                  color: buyNowHover ? '#2ecc71' : '#fff',
                   border: '2px solid #2ecc71',
                   borderRadius: 8,
                   padding: '0.5rem 1.2rem',
                   cursor: 'pointer',
-                  transition: 'background 0.2s'
+                  transition: 'background 0.2s, color 0.2s'
                 }}
+                onMouseEnter={() => setBuyNowHover(true)}
+                onMouseLeave={() => setBuyNowHover(false)}
                 onClick={handleBuyNow}
               >Buy Now</button>
               <button
@@ -283,15 +320,17 @@ const ProductDetails = () => {
                   fontWeight: 700,
                   fontSize: '1.15rem',
                   height: '48px',
-                  background: '#fff',
-                  color: '#2ecc71',
+                  background: addToCartHover ? '#2ecc71' : '#fff',
+                  color: addToCartHover ? '#fff' : '#2ecc71',
                   border: '2px solid #2ecc71',
                   borderRadius: 8,
                   padding: '0.5rem 1.2rem',
                   cursor: addingToCart ? 'not-allowed' : 'pointer',
                   opacity: addingToCart ? 0.6 : 1,
-                  transition: 'background 0.2s'
+                  transition: 'background 0.2s, color 0.2s'
                 }}
+                onMouseEnter={() => setAddToCartHover(true)}
+                onMouseLeave={() => setAddToCartHover(false)}
                 disabled={addingToCart}
                 onClick={handleAddToCart}
               >{addingToCart ? 'Adding...' : 'Add to Cart'}</button>
@@ -320,13 +359,37 @@ const ProductDetails = () => {
             </div>
             <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', marginLeft: 12 }}>
               <button
+                style={{
+                  background: visitShopHover ? '#fff' : '#2ecc71',
+                  color: visitShopHover ? '#2ecc71' : '#fff',
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  border: '2px solid #2ecc71',
+                  borderRadius: 8,
+                  padding: '0.5rem 1.2rem',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s, color 0.2s'
+                }}
+                onMouseEnter={() => setVisitShopHover(true)}
+                onMouseLeave={() => setVisitShopHover(false)}
                 onClick={() => window.location.href = `/shop/${product.ShopID ?? product.shopId}`}
-                style={{ background: '#2ecc71', color: '#fff', fontWeight: 700, fontSize: '0.95rem', border: '2px solid #2ecc71', borderRadius: 8, padding: '0.5rem 1.2rem', cursor: 'pointer', transition: 'background 0.2s' }}
               >
                 Visit Shop
               </button>
               <button
-                style={{ background: '#fff', color: '#2ecc71', fontWeight: 700, fontSize: '0.95rem', border: '2px solid #2ecc71', borderRadius: 8, padding: '0.5rem 1.2rem', cursor: 'pointer', transition: 'background 0.2s' }}
+                style={{
+                  background: chatNowHover ? '#2ecc71' : '#fff',
+                  color: chatNowHover ? '#fff' : '#2ecc71',
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  border: '2px solid #2ecc71',
+                  borderRadius: 8,
+                  padding: '0.5rem 1.2rem',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s, color 0.2s'
+                }}
+                onMouseEnter={() => setChatNowHover(true)}
+                onMouseLeave={() => setChatNowHover(false)}
               >
                 Chat Now
               </button>
@@ -338,32 +401,38 @@ const ProductDetails = () => {
         {/* Reviews & Replies Card */}
         <div style={{ maxWidth: 1100, margin: '2rem auto 0 auto', background: '#fff', borderRadius: '1.2rem', boxShadow: '0 2px 16px rgba(44,204,113,0.07)', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div style={{ fontWeight: 700, fontSize: '1.25rem', marginBottom: '0.7rem', color: '#222' }}>Recent Reviews</div>
-          {reviews && reviews.length > 0 ? (
-            reviews.map((review, idx) => (
-              <div key={idx} style={{ borderBottom: '1px solid #eee', padding: '1.2rem 0 0.7rem 0', display: 'flex', alignItems: 'flex-start', gap: '1.2rem', position: 'relative' }}>
-                <div style={{ fontWeight: 700, color: '#2ecc71', fontSize: '1.25rem', marginRight: '0.7rem', minWidth: 38, textAlign: 'center' }}>★ {review.Rating}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, color: '#222', fontSize: '1.08rem', marginBottom: '0.2rem' }}>{review.userName}</div>
-                  <div style={{ color: '#444', fontSize: '1.08rem', marginBottom: '0.3rem', lineHeight: 1.5 }}>{review.ReviewText || review.Comment}</div>
-                  <div style={{ color: '#aaa', fontSize: '0.97rem', marginBottom: 4 }}>{review.CreatedAt ? new Date(review.CreatedAt).toLocaleDateString() : (review.ReviewDate ? new Date(review.ReviewDate).toLocaleDateString() : '')}</div>
-                  {/* Replies */}
-                  {review.replies && review.replies.length > 0 && (
-                    <div style={{ marginTop: 10, marginLeft: 0, borderLeft: '3px solid #e0f7ef', paddingLeft: 16, background: '#f8fefb', borderRadius: 6 }}>
-                      {review.replies.map((reply, ridx) => (
-                        <div key={ridx} style={{ marginBottom: 10, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                          <div style={{ fontWeight: 600, color: '#2ecc71', fontSize: '1.05rem', minWidth: 32 }}>↳</div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 600, color: '#222', fontSize: '1.01rem', marginBottom: 2 }}>{reply.userName || reply.UserName || 'Shop Owner'}</div>
-                            <div style={{ color: '#444', fontSize: '1.01rem', marginBottom: 2 }}>{reply.Comment || reply.comment}</div>
-                            <div style={{ color: '#aaa', fontSize: '0.95rem' }}>{reply.CreatedAt ? new Date(reply.CreatedAt).toLocaleDateString() : (reply.created_at ? new Date(reply.created_at).toLocaleDateString() : '')}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+          {viewReviews && viewReviews.length > 0 ? (
+            viewReviews.map((review, idx) => {
+              const replies = review.Replies ? review.Replies.split(',') : [];
+              const repliesContent = review.RepliesContent ? review.RepliesContent.split('|||') : [];
+              return (
+                <div key={idx} style={{ borderBottom: '1px solid #eee', padding: '1.2rem 0 0.7rem 0', display: 'flex', alignItems: 'flex-start', gap: '1.2rem', position: 'relative' }}>
+                  <div style={{ fontWeight: 700, color: '#2ecc71', fontSize: '1.25rem', marginRight: '0.7rem', minWidth: 38, textAlign: 'center' }}>★ {review.Rating}</div>
+                  <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, color: '#222', fontSize: '1.08rem', marginBottom: '0.2rem' }}>{review.ReviewerName || `User ${review.ReviewerID}`}</div>
+                    <div style={{ color: '#444', fontSize: '1.08rem', marginBottom: '0.3rem', lineHeight: 1.5 }}>{review.ReviewContent}</div>
+                    <div style={{ color: '#aaa', fontSize: '0.97rem', marginBottom: 4 }}>{review.ReviewDate ? new Date(review.ReviewDate).toLocaleDateString() : ''}</div>
+                    {/* Replies */}
+                    {replies.length > 0 && replies[0] !== '' && (
+                      <div style={{ marginTop: 10, marginLeft: 0, borderLeft: '3px solid #e0f7ef', paddingLeft: 16, background: '#f8fefb', borderRadius: 6 }}>
+                        {(() => {
+                          const repliesNames = review.RepliesNames ? review.RepliesNames.split('|||') : [];
+                          return replies.map((replyId, ridx) => (
+                            <div key={ridx} style={{ marginBottom: 10, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                              <div style={{ fontWeight: 600, color: '#2ecc71', fontSize: '1.05rem', minWidth: 32 }}>↳</div>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: 600, color: '#222', fontSize: '1.01rem', marginBottom: 2 }}>{repliesNames[ridx] || `User ${replyId}`}</div>
+                                <div style={{ color: '#444', fontSize: '1.01rem', marginBottom: 2 }}>{repliesContent[ridx] || ''}</div>
+                              </div>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div style={{ color: '#888', fontSize: '1.1rem' }}>No reviews yet.</div>
           )}

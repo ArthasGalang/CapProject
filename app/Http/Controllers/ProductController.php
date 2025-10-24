@@ -98,7 +98,9 @@ class ProductController extends Controller {
             'shopName' => $row->Shop,
             'shopLogo' => $shopLogo,
             'ownerName' => $row->User,
-            'shopId' => $row->ShopID ?? null,
+            'shopId' => $row->ShopID ?? ($row->ShopId ?? null),
+            'Stock' => $row->Stock ?? null,
+            'SoldAmount' => $row->Sold ?? null,
             'Description' => $row->Description ?? '',
         ];
 
