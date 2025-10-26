@@ -42,6 +42,7 @@ class ShopSeeder extends Seeder
         $shopIdx = 0;
         foreach ($userIds as $i => $userId) {
             for ($j = 0; $j < $userShopCount[$i]; $j++) {
+                $verificationStates = ['Verified', 'Pending', 'Rejected'];
                 $shops[] = [
                     'UserID' => $userId,
                     'ShopName' => $shopNames[$shopIdx % count($shopNames)],
@@ -50,7 +51,7 @@ class ShopSeeder extends Seeder
                     'BackgroundImage' => $placeholderBg,
                     'AddressID' => $addressIds[array_rand($addressIds)],
                     'BusinessPermit' => 'Permit-' . ($shopIdx+1),
-                    'isVerified' => (bool)rand(0,1),
+                    'Verification' => $verificationStates[array_rand($verificationStates)],
                     'hasPhysical' => (bool)rand(0,1),
                     'created_at' => now(),
                     'updated_at' => now(),

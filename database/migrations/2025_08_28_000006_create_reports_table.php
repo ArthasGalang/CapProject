@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('ReportedLink');
             $table->enum('TargetType', ['User', 'Shop', 'Product', 'Order', 'Other']);
             $table->string('TargetID');
+            $table->text('Content');
             $table->timestamps();
         });
         DB::statement("ALTER TABLE reports AUTO_INCREMENT = 90000000;");

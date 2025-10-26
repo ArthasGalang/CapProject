@@ -21,35 +21,38 @@ class MessageSeeder extends Seeder
             $numMessages = rand(2, 6);
             for ($i = 0; $i < $numMessages; $i++) {
                 $receiver = $faker->randomElement($receivers);
+                $message = $faker->sentence(rand(5, 15));
+                $isRead = $faker->boolean(70);
                 DB::table('usermessages')->insert([
                     'SenderID' => $sender,
                     'ReceiverID' => $receiver,
-                    'MessageBody' => $faker->sentence(rand(5, 15)),
-                    'IsRead' => $faker->boolean(70),
-                    'ReadAt' => $faker->optional(0.7)->dateTimeThisYear(),
+                    'MessageBody' => $message,
+                    'IsRead' => $isRead,
+                    'ReadAt' => $isRead ? $faker->dateTimeThisYear() : null,
                     'created_at' => $faker->dateTimeThisYear(),
                     'updated_at' => now(),
                 ]);
             }
         }
 
-        // Shop messages
-        DB::table('shopmessages')->delete();
-        $shops = DB::table('shops')->pluck('ShopID')->toArray();
-        foreach ($shops as $shop) {
-            $numMessages = rand(2, 5);
-            for ($i = 0; $i < $numMessages; $i++) {
-                $receiver = $faker->randomElement($users);
-                DB::table('shopmessages')->insert([
-                    'SenderID' => $shop,
-                    'ReceiverID' => $receiver,
-                    'MessageBody' => $faker->sentence(rand(5, 15)),
-                    'IsRead' => $faker->boolean(70),
-                    'ReadAt' => $faker->optional(0.7)->dateTimeThisYear(),
-                    'created_at' => $faker->dateTimeThisYear(),
-                    'updated_at' => now(),
-                ]);
-            }
+        // Admin messages (only ReceiverID, no SenderID)
+        DB::table('adminmessages')->delete();
+        $users = DB::table('users')->pluck('UserID')->toArray();
+        $numAdmins = DB::table('admins')->count();
+        $numMessages = $numAdmins > 0 ? rand(2, 5) * $numAdmins : 5;
+        for ($i = 0; $i < $numMessages; $i++) {
+            $receiver = $faker->randomElement($users);
+            $message = $faker->sentence(rand(5, 15));
+            $isRead = $faker->boolean(70);
+            DB::table('adminmessages')->insert([
+                'ReceiverID' => $receiver,
+                'MessageBody' => $message,
+                'IsRead' => $isRead,
+                'ReadAt' => $isRead ? $faker->dateTimeThisYear() : null,
+                'Incoming' => $faker->boolean(50),
+                'created_at' => $faker->dateTimeThisYear(),
+                'updated_at' => now(),
+            ]);
         }
 
         // Announcements
@@ -58,9 +61,10 @@ class MessageSeeder extends Seeder
         for ($i = 0; $i < $numAnnouncements; $i++) {
             $receiverCount = rand(2, count($users));
             $receiverIDs = $faker->randomElements($users, $receiverCount);
+            $content = $faker->sentence(rand(10, 25));
             DB::table('announcement')->insert([
                 'ReceiverIDs' => json_encode($receiverIDs),
-                'Content' => $faker->sentence(rand(10, 25)),
+                'Content' => $content,
                 'created_at' => $faker->dateTimeThisYear(),
                 'updated_at' => now(),
             ]);

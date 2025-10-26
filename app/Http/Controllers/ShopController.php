@@ -14,6 +14,13 @@ class ShopController extends Controller
 		return response()->json($shops);
 	}
 
+	// Return count of shops with isVerified = 0
+	public function pendingVerificationsCount()
+	{
+		$count = Shop::where('isVerified', 0)->count();
+		return response()->json(['pending_verifications' => $count]);
+	}
+
 	// Register a new shop
 	public function store(Request $request)
 	{

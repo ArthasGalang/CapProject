@@ -43,6 +43,7 @@ class ReportSeeder extends Seeder
                     'ReportedLink' => $faker->url(),
                     'TargetType' => $targetType,
                     'TargetID' => (string)$targetID,
+                    'Content' => $faker->sentence(rand(10, 30)),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);

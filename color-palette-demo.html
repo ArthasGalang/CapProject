@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Website Color Palette Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f7f8fa;
+      color: #222;
+      margin: 0;
+      padding: 2rem;
+    }
+    .palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      justify-content: center;
+      margin-top: 2rem;
+    }
+    .color-block {
+      width: 120px;
+      height: 120px;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(44,204,113,0.07);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      border: 2px solid #eee;
+    }
+    .color-label {
+      margin-top: 0.7rem;
+      font-size: 0.95rem;
+      color: #555;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Website Color Palette Demo</h1>
+  <div class="palette">
+    <div class="color-block" style="background:#2ECC71;color:#fff;">#2ECC71<div class="color-label">Primary</div></div>
+    <div class="color-block" style="background:#229954;color:#fff;">#229954<div class="color-label">Secondary</div></div>
+    <div class="color-block" style="background:#E74C3C;color:#fff;">#E74C3C<div class="color-label">Red/Error</div></div>
+    <div class="color-block" style="background:#E7B53C;color:#222;">#E7B53C<div class="color-label">Orange/Warning</div></div>
+    <div class="color-block" style="background:#BDC3C7;color:#222;">#BDC3C7<div class="color-label">Gray</div></div>
+    <div class="color-block" style="background:#5C6060;color:#fff;">#5C6060<div class="color-label">Gray Medium</div></div>
+    <div class="color-block" style="background:#555555;color:#fff;">#555555<div class="color-label">Gray Dark</div></div>
+    <div class="color-block" style="background:#fff;color:#222;border:2px solid #ccc;">#fff<div class="color-label">White</div></div>
+    <div class="color-block" style="background:#222;color:#fff;">#222<div class="color-label">Black</div></div>
+    <div class="color-block" style="background:#28b864;color:#fff;">#28b864<div class="color-label">Shop Primary</div></div>
+    <div class="color-block" style="background:#f7f8fa;color:#222;">#f7f8fa<div class="color-label">Shop BG Light</div></div>
+    <div class="color-block" style="background:#f0f0f0;color:#222;">#f0f0f0<div class="color-label">Shop Border Light</div></div>
+    <div class="color-block" style="background:#eee;color:#222;">#eee<div class="color-label">Shop Status BG</div></div>
+    <div class="color-block" style="background:#2563eb;color:#fff;">#2563eb<div class="color-label">Admin Primary</div></div>
+    <div class="color-block" style="background:#ef4444;color:#fff;">#ef4444<div class="color-label">Admin Red</div></div>
+    <div class="color-block" style="background:#dc2626;color:#fff;">#dc2626<div class="color-label">Admin Red Hover</div></div>
+    <div class="color-block" style="background:#111827;color:#fff;">#111827<div class="color-label">Admin Black</div></div>
+    <div class="color-block" style="background:#6b7280;color:#fff;">#6b7280<div class="color-label">Admin Label Gray</div></div>
+    <div class="color-block" style="background:#f3f4f6;color:#222;">#f3f4f6<div class="color-label">Admin Light Gray</div></div>
+    <div class="color-block" style="background:#e5e7eb;color:#222;">#e5e7eb<div class="color-label">Admin Gray</div></div>
+    <div class="color-block" style="background:#374151;color:#fff;">#374151<div class="color-label">Admin Dark Gray</div></div>
+    <div class="color-block" style="background:#4b5563;color:#fff;">#4b5563<div class="color-label">Admin Text Gray</div></div>
+  </div>
+  <p style="margin-top:2rem;color:#555;text-align:center;">This demo shows all main colors from your CSS, Tailwind, and inline styles.</p>
+</body>
+</html>

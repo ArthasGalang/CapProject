@@ -19,7 +19,11 @@ return new class extends Migration
             $table->string('BackgroundImage');
             $table->unsignedBigInteger('AddressID');
             $table->string('BusinessPermit');
-            $table->boolean('isVerified')->default(false);
+            $table->string('Facebook')->nullable();
+            $table->string('Instagram')->nullable();
+            $table->string('X')->nullable();
+            $table->string('TikTok')->nullable();
+            $table->enum('Verification', ['Rejected', 'Pending', 'Verified'])->default('Pending');
             $table->boolean('hasPhysical')->default(false);
             $table->timestamps();
             $table->foreign('AddressID')->references('AddressID')->on('addresses');

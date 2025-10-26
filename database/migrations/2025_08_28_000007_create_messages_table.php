@@ -24,22 +24,19 @@ return new class extends Migration
         });
       DB::statement("ALTER TABLE usermessages AUTO_INCREMENT = 100000000;");
 
-
-        Schema::create('shopmessages', function (Blueprint $table) {
-            $table->id('ShopMessageID');
-    $table->foreignId('SenderID')
-      ->constrained('shops', 'ShopID')
-      ->onDelete('cascade');
+        Schema::create('adminmessages', function (Blueprint $table) {
+            $table->id('AdminMessageID');
             $table->foreignId('ReceiverID')
                   ->constrained('users', 'UserID')
                   ->onDelete('cascade');
             $table->text('MessageBody');
             $table->boolean('IsRead')->default(false);
             $table->timestamp('ReadAt')->nullable();
+            $table->boolean('Incoming')->default(false);
             $table->softDeletes();
             $table->timestamps();
         });
-      DB::statement("ALTER TABLE shopmessages AUTO_INCREMENT = 110000000;");
+      DB::statement("ALTER TABLE adminmessages AUTO_INCREMENT = 130000000;");
 
 
 
@@ -53,8 +50,11 @@ return new class extends Migration
       DB::statement("ALTER TABLE announcement AUTO_INCREMENT = 120000000;");
     }
 
-    public function down(): void
-    {
-        Schema::dropIfExists('messages');
-    }
+  public function down(): void
+  {
+    Schema::dropIfExists('usermessages');
+    Schema::dropIfExists('shopmessages');
+    Schema::dropIfExists('adminmessages');
+    Schema::dropIfExists('announcement');
+  }
 };

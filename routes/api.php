@@ -14,23 +14,42 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\CartItemController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\AddressController;
-use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Http\Controllers\UserMessageController;
-use App\Http\Controllers\ShopDashboardController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\AdminMessageController;
 // User messages API (for chat)
 Route::get('/usermessages', [UserMessageController::class, 'index']);
 Route::post('/usermessages', [UserMessageController::class, 'store']);
+Route::get('/reports/open-count', [ReportController::class, 'openReportsCount']);
+Route::get('/adminmessages/unread-count', [AdminMessageController::class, 'unreadCount']);
+Route::get('/reports', function() {
+    $reports = DB::table('reports')->get();
+    return response()->json($reports);
+});
+Route::get('/reports/view', function() {
+    $reports = DB::select('SELECT * FROM reports_view');
+    return response()->json($reports);
+});
+
+Route::get('/reports/{id}', function($id) {
+    $report = \DB::table('reports')->where('ReportID', $id)->first();
+    if ($report) {
+        return response()->json($report);
+    } else {
+        return response()->json(['error' => 'Report not found'], 404);
+    }
+});
 
 Route::get('/reviews_with_replies/{ProductID}', function($ProductID) {
     $results = DB::select('SELECT * FROM reviews_with_replies WHERE ProductID = ?', [$ProductID]);
     return response()->json($results);
 });
 // Announcements API (dummy, replace with real data as needed)
-Route::get('/announcements', function() {
-    // TODO: Replace with actual announcement fetching logic
-    return response()->json([]);
-});
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\AnnouncementController;
+Route::get('/announcements', [AnnouncementController::class, 'index']);
+Route::post('/announcements', [AnnouncementController::class, 'store']);
 
 Route::get('/shop_dashboard_view', function () {
     $data = DB::select('SELECT * FROM shop_dashboard_view');
@@ -119,6 +138,8 @@ Route::get('/addresses/{id}', function($id) {
 
 Route::get('/shops', [ShopController::class, 'index']);
 Route::get('/shops/many', [ShopController::class, 'getMany']);
+// Get count of shops with isVerified = 0
+Route::get('/shops/pending-verifications', [ShopController::class, 'pendingVerificationsCount']);
 Route::get('/shops/{id}', function($id) {
     $shop = \DB::table('shops')->where('ShopID', $id)->first();
     if ($shop) {
@@ -132,6 +153,20 @@ Route::delete('/shops/{id}', function($id) {
     $shop = \DB::table('shops')->where('ShopID', $id);
     if ($shop->exists()) {
         $shop->delete();
+        return response()->json(['success' => true]);
+    } else {
+        return response()->json(['error' => 'Shop not found'], 404);
+    }
+});
+
+// PATCH route for updating shop Verification status
+Route::patch('/shops/{id}', function(Request $request, $id) {
+    $verification = $request->input('Verification');
+    if (!in_array($verification, ['Verified', 'Pending', 'Rejected'])) {
+        return response()->json(['error' => 'Invalid status'], 400);
+    }
+    $updated = \DB::table('shops')->where('ShopID', $id)->update(['Verification' => $verification, 'updated_at' => now()]);
+    if ($updated) {
         return response()->json(['success' => true]);
     } else {
         return response()->json(['error' => 'Shop not found'], 404);
@@ -206,4 +241,3 @@ Route::patch('/cart-items/{id}', [CartItemController::class, 'update']);
 
 // Get cart items count for authenticated user
 Route::middleware('auth:sanctum')->get('/cart-items/count', [CartController::class, 'countForAuthUser']);
-Route::get('/shop-dashboard', [ShopDashboardController::class, 'index']);
