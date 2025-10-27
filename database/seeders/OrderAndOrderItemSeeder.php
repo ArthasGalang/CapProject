@@ -22,14 +22,17 @@ class OrderAndOrderItemSeeder extends Seeder
         foreach ($users as $user) {
             $userShops = $shops->where('UserID', $user->UserID)->pluck('ShopID')->toArray();
             $otherShops = $shops->whereNotIn('ShopID', $userShops)->pluck('ShopID')->toArray();
-            $numOrders = rand(0, 5);
+            $numOrders = rand(5, 12); // Increase number of orders per user
             for ($i = 0; $i < $numOrders; $i++) {
                 if (empty($otherShops)) break;
                 $shopId = $otherShops[array_rand($otherShops)];
                 $shopProducts = $products->where('ShopID', $shopId)->pluck('ProductID')->toArray();
                 if (empty($shopProducts)) continue;
                 $addressId = $addresses->where('UserID', $user->UserID)->pluck('AddressID')->random();
-                $orderDate = now()->subDays(rand(0, 365));
+                // Generate a random date within 2025
+                $start = strtotime('2025-01-01');
+                $end = strtotime('2025-12-31');
+                $orderDate = \Carbon\Carbon::createFromTimestamp(rand($start, $end));
                 $status = $statuses[array_rand($statuses)];
                 $paymentMethod = $paymentMethods[array_rand($paymentMethods)];
                 $isPickUp = (bool)rand(0, 1);
@@ -50,13 +53,13 @@ class OrderAndOrderItemSeeder extends Seeder
                     'updated_at' => now(),
                 ];
                 $orderId = DB::table('orders')->insertGetId($order);
-                $numItems = rand(1, min(5, count($shopProducts)));
+                $numItems = rand(2, min(8, count($shopProducts))); // Increase items per order
                 $pickedProducts = array_rand($shopProducts, $numItems);
                 if (!is_array($pickedProducts)) $pickedProducts = [$pickedProducts];
                 $total = 0;
                 foreach ($pickedProducts as $idx) {
                     $productId = $shopProducts[$idx];
-                    $qty = rand(1, 3);
+                    $qty = rand(2, 6); // Increase quantity per item
                     $product = $products->firstWhere('ProductID', $productId);
                     $subtotal = $product->Price * $qty;
                     $orderItems[] = [

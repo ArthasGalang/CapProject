@@ -3,6 +3,17 @@
 import React, { useEffect, useState } from 'react';
 // Status progression array
 const STATUS_FLOW = ['To Pay', 'Preparing', 'For Pickup/Delivery', 'Completed'];
+
+// Status color and label mapping
+const STATUS_META = {
+  'To Pay':   { color: '#22c55e', label: 'To Pay' },
+  'Preparing': { color: '#f59e42', label: 'Preparing' },
+  'For Pickup/Delivery': { color: '#3b82f6', label: 'For Pickup/Delivery' },
+  'Completed': { color: '#6366f1', label: 'Completed' },
+  'Cancelled': { color: '#ef4444', label: 'Cancelled' },
+  'Delivering': { color: '#3b82f6', label: 'Delivering' }, // fallback for alternate status
+  'ToPay': { color: '#22c55e', label: 'To Pay' }, // fallback for alternate status
+};
   // Function to get the next status
   const getNextStatus = (currentStatus) => {
     const idx = STATUS_FLOW.indexOf(currentStatus);
@@ -45,9 +56,12 @@ import ShopSidebar from '../Components/ShopSidebar';
 
 const ShopOrders = (props) => {
   const [orders, setOrders] = useState([]);
+  const [selectedStatus, setSelectedStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortDirection, setSortDirection] = useState('asc');
   const itemsPerPage = 10;
 
   // Get shopId from props (passed by Inertia)
@@ -73,15 +87,60 @@ const ShopOrders = (props) => {
   }, []);
 
 
-  // Pagination logic
-  const totalPages = Math.max(1, Math.ceil(orders.length / itemsPerPage));
-  // Ensure currentPage is within bounds when orders shrink
+  // Only show valid statuses from migration
+  const VALID_STATUSES = ['To Pay', 'Preparing', 'For Pickup/Delivery', 'Completed', 'Cancelled'];
+  const statusCounts = {};
+  VALID_STATUSES.forEach(status => {
+    statusCounts[status] = orders.filter(order => order.Status === status || order.Status?.replace(/\s/g, '') === status).length;
+  });
+
+  // Filter orders by selected status
+  let filteredOrders = selectedStatus
+    ? orders.filter(order => order.Status === selectedStatus)
+    : orders;
+
+  // Sorting logic
+  if (sortColumn) {
+    filteredOrders = [...filteredOrders].sort((a, b) => {
+      let valA, valB;
+      switch (sortColumn) {
+        case 'OrderID':
+          valA = Number(a.OrderID);
+          valB = Number(b.OrderID);
+          break;
+        case 'Customer':
+          valA = (a.BuyerName || a.CustomerName || '').toLowerCase();
+          valB = (b.BuyerName || b.CustomerName || '').toLowerCase();
+          break;
+        case 'Date':
+          valA = new Date(a.OrderDate || 0).getTime();
+          valB = new Date(b.OrderDate || 0).getTime();
+          break;
+        case 'Amount':
+          valA = Number(a.TotalAmount);
+          valB = Number(b.TotalAmount);
+          break;
+        case 'Status':
+          valA = (a.Status || '').toLowerCase();
+          valB = (b.Status || '').toLowerCase();
+          break;
+        default:
+          valA = '';
+          valB = '';
+      }
+      if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+      if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
+
+  // Pagination logic (filtered)
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / itemsPerPage));
+  // Ensure currentPage is within bounds when orders shrink or filter changes
   React.useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages);
-  }, [orders.length, totalPages]);
-
-  const paginatedOrders = orders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
+  }, [filteredOrders.length, totalPages]);
+  const paginatedOrders = filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   // Log shopId and orders for debugging
   console.log('Shop ID:', shopId);
   console.log('Orders state:', orders);
@@ -99,27 +158,108 @@ const ShopOrders = (props) => {
                   <h2 className="order-management__title">Shop Orders</h2>
                   <div className="order-management__subtitle">Manage and process your customer orders</div>
                 </div>
-                <div className="order-management__filter">
-                  <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <select className="order-management__select" style={{ appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', paddingRight: '2rem' }}>
-                      <option>All Orders</option>
-                      <option>Processing</option>
-                      <option>Shipped</option>
-                      <option>Delivered</option>
-                      <option>Cancelled</option>
-                    </select>
-                    <span style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '1rem', color: '#888' }}>▼</span>
-                  </div>
+                {/* Status summary cards (only valid statuses) */}
+                <div style={{ display: 'flex', gap: '1.5rem', margin: '1.5rem 0 2rem 0', flexWrap: 'wrap', position: 'relative' }}>
+                  {VALID_STATUSES.map((status, idx) => {
+                    const meta = STATUS_META[status];
+                    const isSelected = selectedStatus === status;
+                    const isLast = idx === VALID_STATUSES.length - 1;
+                    return (
+                      <React.Fragment key={status}>
+                        <div
+                          onClick={() => {
+                            setSelectedStatus(selectedStatus === status ? null : status);
+                            setCurrentPage(1);
+                          }}
+                          style={{
+                            background: isSelected ? meta.color + '22' : '#fff',
+                            border: isSelected ? `2.5px solid ${meta.color}` : '2.5px solid #ddd',
+                            borderRadius: '1rem',
+                            padding: '1rem 2.2rem',
+                            minWidth: 120,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            boxShadow: isSelected ? `0 4px 16px ${meta.color}33` : '0 2px 8px rgba(44,204,113,0.07)',
+                            cursor: 'pointer',
+                            transition: 'all 0.18s',
+                            outline: isSelected ? `2.5px solid ${meta.color}` : 'none',
+                            position: 'relative',
+                          }}
+                          onMouseEnter={e => {
+                            if (!isSelected) e.currentTarget.style.background = '#f7f7f7';
+                          }}
+                          onMouseLeave={e => {
+                            if (!isSelected) e.currentTarget.style.background = '#fff';
+                          }}
+                        >
+                          <span style={{ color: isSelected ? meta.color : '#222', fontWeight: 700, fontSize: '1.1rem', marginBottom: 4 }}>{meta.label}</span>
+                          <span style={{ color: isSelected ? meta.color : '#222', fontWeight: 800, fontSize: '1.5rem' }}>{statusCounts[status]}</span>
+                          {isSelected && (
+                            <span style={{ position: 'absolute', top: 8, right: 12, fontSize: 18, color: meta.color, fontWeight: 700 }}>&#10003;</span>
+                          )}
+                        </div>
+                        {isLast && (
+                          <div style={{ display: 'flex', alignItems: 'center', marginLeft: 8, position: 'relative' }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                width: 18,
+                                height: 18,
+                                borderRadius: '50%',
+                                background: '#e0f7ef',
+                                color: '#1b8a44',
+                                fontWeight: 700,
+                                fontSize: 13,
+                                textAlign: 'center',
+                                lineHeight: '18px',
+                                cursor: 'default',
+                                marginLeft: 2,
+                                position: 'relative',
+                              }}
+                              title="Click a card to filter orders by status"
+                            >i</span>
+                          </div>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </div>
+                <div style={{ borderBottom: '2px solid #2ecc71'}}></div>
                 <div className="order-management__table-wrapper">
                   {/* Styled grid-based table for orders */}
                   <div style={{width: '100%', overflowX: 'auto'}}>
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 2fr 2fr 2fr 2fr', gap: 0, padding: '12px 16px', borderBottom: '2px solid #2ecc71', background: '#f2fff6', color: '#1b5e20', fontWeight: 700 }}>
-                      <div>Order ID</div>
-                      <div>Customer</div>
-                      <div>Date</div>
-                      <div>Amount</div>
-                      <div>Status</div>
+                      <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => {
+                        if (sortColumn === 'OrderID') setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+                        setSortColumn('OrderID');
+                      }}>
+                        Order ID {sortColumn === 'OrderID' && (sortDirection === 'asc' ? '▲' : '▼')}
+                      </div>
+                      <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => {
+                        if (sortColumn === 'Customer') setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+                        setSortColumn('Customer');
+                      }}>
+                        Customer {sortColumn === 'Customer' && (sortDirection === 'asc' ? '▲' : '▼')}
+                      </div>
+                      <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => {
+                        if (sortColumn === 'Date') setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+                        setSortColumn('Date');
+                      }}>
+                        Date {sortColumn === 'Date' && (sortDirection === 'asc' ? '▲' : '▼')}
+                      </div>
+                      <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => {
+                        if (sortColumn === 'Amount') setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+                        setSortColumn('Amount');
+                      }}>
+                        Amount {sortColumn === 'Amount' && (sortDirection === 'asc' ? '▲' : '▼')}
+                      </div>
+                      <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => {
+                        if (sortColumn === 'Status') setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+                        setSortColumn('Status');
+                      }}>
+                        Status {sortColumn === 'Status' && (sortDirection === 'asc' ? '▲' : '▼')}
+                      </div>
                       <div style={{textAlign: 'right'}}>Actions</div>
                     </div>
                     {loading ? (
@@ -136,10 +276,33 @@ const ShopOrders = (props) => {
                       paginatedOrders.map(order => (
                         <div key={order.OrderID} style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 2fr 2fr 2fr 2fr', gap: 0, alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #f3f3f3', background: '#ffffff' }}>
                           <div style={{ fontWeight: 600, color: '#222' }}>#{order.OrderID}</div>
-                          <div style={{ color: '#444' }}>{order.CustomerName}</div>
+                          <div style={{ color: '#444' }}>
+                            {order.BuyerName || order.CustomerName || ''}
+                          </div>
                           <div style={{ color: '#444' }}>{order.OrderDate ? new Date(order.OrderDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : ''}</div>
-                          <div style={{ color: '#1b5e20', fontWeight: 700 }}>P{order.TotalPrice ? Number(order.TotalPrice).toFixed(2) : ''}</div>
-                          <div><span className={`order-status order-status--${order.Status ? order.Status.toLowerCase() : ''}`}>{order.Status}</span></div>
+                          <div style={{ color: '#1b5e20', fontWeight: 700 }}>₱{order.TotalAmount ? Number(order.TotalAmount).toFixed(2) : ''}</div>
+                          <div>
+                            {(() => {
+                              const meta = STATUS_META[order.Status] || STATUS_META[order.Status?.replace(/\s/g, '')] || { color: '#888', label: order.Status };
+                              return (
+                                <span
+                                  className="order-status"
+                                  style={{
+                                    background: meta.color + '22',
+                                    color: meta.color,
+                                    borderRadius: 8,
+                                    padding: '2px 10px',
+                                    fontWeight: 700,
+                                    fontSize: '0.98rem',
+                                    border: `1.5px solid ${meta.color}`,
+                                    letterSpacing: 0.2,
+                                  }}
+                                >
+                                  {meta.label}
+                                </span>
+                              );
+                            })()}
+                          </div>
                           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                             <button className="order-action-btn" style={{ fontSize: '0.85rem', padding: '0.3rem 0.7rem', marginRight: '0.5rem', background: '#eaffef', color: '#1b8a44', border: '1px solid #cff5d9', borderRadius: 8, cursor: 'pointer', fontWeight: 700 }}>Details</button>
                             <button

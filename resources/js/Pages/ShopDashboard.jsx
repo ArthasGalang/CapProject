@@ -51,6 +51,7 @@ const ShopDashboard = (props) => {
   const [dashboardData, setDashboardData] = useState([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
+    // Fetch dashboard data
     fetch('/api/shop_dashboard_view')
       .then(res => res.json())
       .then(data => {
@@ -63,6 +64,17 @@ const ShopDashboard = (props) => {
         console.error('Error fetching shop_dashboard_view:', err);
       });
   }, []);
+
+  // Fetch top products for the shop
+  const [topProducts, setTopProducts] = useState([]);
+  useEffect(() => {
+    fetch(`/api/top_products_by_shop?shop_id=${shopId}`)
+      .then(res => res.json())
+      .then(data => {
+        setTopProducts(Array.isArray(data) ? data.slice(0, 5) : []);
+      })
+      .catch(() => setTopProducts([]));
+  }, [shopId]);
   const defaultWeek = getDefaultWeek();
   const [dateRange, setDateRange] = useState({ start: defaultWeek.start, end: defaultWeek.end });
 
@@ -96,11 +108,28 @@ const ShopDashboard = (props) => {
 
   // Dashboard cards
   const shopRows = dashboardData.filter(row => row.ShopID == shopId);
+  // Sort shopRows by OrderDate descending for recent orders
+  const recentOrders = [...shopRows].sort((a, b) => new Date(b.OrderDate) - new Date(a.OrderDate));
+  // Filter to unique orders by OrderID
+  const uniqueRecentOrders = [];
+  const seenOrderIds = new Set();
+  for (const row of recentOrders) {
+    if (!seenOrderIds.has(row.OrderID)) {
+      uniqueRecentOrders.push(row);
+      seenOrderIds.add(row.OrderID);
+    }
+  }
   const pendingOrders = shopRows.filter(row => row.OrderStatus === 'Preparing' || row.OrderStatus === 'To Pay').length;
   const completedOrders = shopRows.filter(row => row.OrderStatus === 'Completed').length;
   const totalSales = shopRows.filter(row => row.OrderStatus === 'Completed').reduce((sum, row) => sum + parseFloat(row.TotalAmount), 0);
-  // Low stock products (stock <= 5, unique by ProductID)
-  const lowStockProducts = Array.from(new Map(shopRows.filter(row => row.Stock <= 5).map(row => [row.ProductID, row])).values());
+  // Low stock products: Stock <= 5 OR Stock <= SoldAmount * 0.1
+  const lowStockProducts = Array.from(
+    new Map(
+      shopRows
+        .filter(row => row.Stock <= 5 || row.Stock <= row.SoldAmount * 0.1)
+        .map(row => [row.ProductID, row])
+    ).values()
+  );
 
   return (
     <>
@@ -230,14 +259,14 @@ const ShopDashboard = (props) => {
               </div>
               {/* Top Products Bar Chart */}
               <div style={{ background: '#fff', borderRadius: '1.2rem', boxShadow: '0 2px 16px rgba(44,204,113,0.07)', padding: '2rem', minWidth: 0 }}>
-                <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '1.1rem', marginBottom: '1.2rem' }}>Top Products (MTD)</div>
+                <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '1.1rem', marginBottom: '1.2rem' }}>Top Products (Completed Orders)</div>
                 <Bar
                   data={{
-                    labels: lowStockProducts.map(p => p.ProductName),
+                    labels: topProducts.map(p => p.ProductName),
                     datasets: [
                       {
                         label: 'Units Sold',
-                        data: lowStockProducts.map(p => p.SoldAmount),
+                        data: topProducts.map(p => p.UnitsSold),
                         backgroundColor: 'rgba(44,204,113,0.8)',
                         borderWidth: 1,
                       },
@@ -274,7 +303,7 @@ const ShopDashboard = (props) => {
                     {loading ? (
                       <tr><td colSpan={5}>Loading...</td></tr>
                     ) : (
-                      shopRows.slice(0, 3).map((row, idx) => (
+                      uniqueRecentOrders.slice(0, 3).map((row, idx) => (
                         <tr key={row.OrderID + '-' + row.ProductID + '-' + idx} style={{ background: '#fff', borderBottom: '1px solid #eee' }}>
                           <td style={{ padding: '0.8rem', fontWeight: 600 }}>#{row.OrderID}</td>
                           <td style={{ padding: '0.8rem' }}>{row.CustomerName}</td>

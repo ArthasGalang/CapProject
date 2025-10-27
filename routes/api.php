@@ -1,4 +1,5 @@
 
+
 <?php
 
 use Illuminate\Http\Request;
@@ -31,6 +32,15 @@ Route::get('/reports', function() {
 Route::get('/reports/view', function() {
     $reports = DB::select('SELECT * FROM reports_view');
     return response()->json($reports);
+});
+
+Route::get('/top_products_by_shop', function (\Illuminate\Http\Request $request) {
+    $shopId = $request->query('shop_id');
+    if (!$shopId) {
+        return response()->json([]);
+    }
+    $results = DB::select('SELECT * FROM top_products_by_shop WHERE ShopID = ? ORDER BY UnitsSold DESC', [$shopId]);
+    return response()->json($results);
 });
 
 Route::get('/reports/{id}', function($id) {
