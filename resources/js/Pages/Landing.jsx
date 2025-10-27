@@ -158,14 +158,16 @@ const Landing = () => {
                 <h1 className="heroTitle">Experience Community Commerce at its Finest</h1>
                 <h3 className="heroSubtitle">Your gateway to local treasures in Barangay Gen T. De Leon</h3>
                 <div className="authButtons" style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center' }}>
-                    {/* Sell Now button always visible */}
-                    <button
-                        className="registerBtn"
-                        style={{ marginRight: 0 }}
-                        onClick={() => setShowShopModal(true)}
-                    >
-                        Sell Now
-                    </button>
+                    {/* Sell Now button only visible when logged in */}
+                    {isLoggedIn && (
+                        <button
+                            className="registerBtn"
+                            style={{ marginRight: 0 }}
+                            onClick={() => setShowShopModal(true)}
+                        >
+                            Sell Now
+                        </button>
+                    )}
                     {!isLoggedIn ? (
                         <>
                             <button className="registerBtn" onClick={() => { setShowModal(true); setModalTab('register'); }}>Register</button>

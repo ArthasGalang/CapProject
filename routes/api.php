@@ -21,6 +21,7 @@ use App\Http\Controllers\AdminMessageController;
 // User messages API (for chat)
 Route::get('/usermessages', [UserMessageController::class, 'index']);
 Route::post('/usermessages', [UserMessageController::class, 'store']);
+Route::post('/usermessages/read', [UserMessageController::class, 'markAsRead']);
 Route::get('/reports/open-count', [ReportController::class, 'openReportsCount']);
 Route::get('/adminmessages/unread-count', [AdminMessageController::class, 'unreadCount']);
 Route::get('/reports', function() {

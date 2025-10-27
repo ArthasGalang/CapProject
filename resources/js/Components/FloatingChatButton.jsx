@@ -2,8 +2,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 const FloatingChatButton = () => {
+  // Check if user is logged in
+  let isLoggedIn = false;
+  try {
+    isLoggedIn = !!localStorage.getItem('user');
+  } catch (e) {
+    isLoggedIn = false;
+  }
+  if (!isLoggedIn) return null;
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const [showAnnouncements, setShowAnnouncements] = useState(false);
   const [announcements, setAnnouncements] = useState([]);
   const [input, setInput] = useState('');
@@ -28,13 +37,14 @@ const FloatingChatButton = () => {
     } catch (e) { userId = null; }
     if (!userId) return;
     // Fetch chats
-  fetch(`/api/usermessages?sender_id=${userId}`)
+  fetch(`/api/usermessages?user_id=${userId}`)
       .then(res => res.json())
       .then(async data => {
-        // Group chats by unique ReceiverID (other user)
+        // Group chats by unique user (other than current user) if there is at least one message between them
         const chatMap = {};
         const userIds = new Set();
         data.forEach(msg => {
+          // Find the other user in the message
           const otherId = msg.SenderID === userId ? msg.ReceiverID : msg.SenderID;
           if (!chatMap[otherId]) chatMap[otherId] = { otherId, messages: [] };
           chatMap[otherId].messages.push(msg);
@@ -62,7 +72,24 @@ const FloatingChatButton = () => {
     // Fetch announcements
     fetch('/api/announcements')
       .then(res => res.json())
-      .then(data => setAnnouncements(Array.isArray(data) ? data : []))
+      .then(data => {
+        console.log('Fetched announcements:', data);
+        let userId = null;
+        try {
+          const userData = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+          userId = userData && (userData.UserID || userData.id);
+        } catch (e) { userId = null; }
+        // Filter announcements
+        const filtered = Array.isArray(data) ? data.filter(a => {
+          if (!a.ReceiverIDs || a.ReceiverIDs.length === 0) return true;
+          let receiverIds = [];
+          try {
+            receiverIds = typeof a.ReceiverIDs === 'string' ? JSON.parse(a.ReceiverIDs) : a.ReceiverIDs;
+          } catch (e) {}
+          return receiverIds.length === 0 || (userId && receiverIds.includes(Number(userId)));
+        }) : [];
+        setAnnouncements(filtered);
+      })
       .catch(() => setAnnouncements([]));
   }, [open]);
 
@@ -76,16 +103,48 @@ const FloatingChatButton = () => {
       userId = userData && (userData.UserID || userData.id);
     } catch (e) { userId = null; }
     if (!userId) return;
-  fetch(`/api/usermessages?sender_id=${userId}&other_id=${activeChat}`)
+    setLoadingMessages(true);
+    fetch(`/api/usermessages?sender_id=${userId}&other_id=${activeChat}`)
       .then(res => res.json())
       .then(data => {
         setMessages(Array.isArray(data) ? data : []);
+        setLoadingMessages(false);
+      })
+      .catch(() => {
+        setMessages([]);
+        setLoadingMessages(false);
       });
 
     // Listen for new messages in real time
     if (window.Echo) {
       window.Echo.channel(`chat.${userId}`)
-        .listen('MessageSent', (e) => {
+        .listen('UserMessageSent', (e) => {
+          console.log('Received UserMessageSent event:', e);
+          // Always update chat list with new message
+          setChats(prevChats => {
+            const senderId = e.message.SenderID;
+            const receiverId = e.message.ReceiverID;
+            const otherId = senderId === userId ? receiverId : senderId;
+            let found = false;
+            const updatedChats = prevChats.map(chat => {
+              if (chat.otherId === otherId) {
+                found = true;
+                return {
+                  ...chat,
+                  messages: [...chat.messages, e.message]
+                };
+              }
+              return chat;
+            });
+            // If chat doesn't exist, add it
+            if (!found) {
+              return [
+                { otherId, messages: [e.message] },
+                ...prevChats
+              ];
+            }
+            return updatedChats;
+          });
           // Only add messages for the active chat
           if (
             (e.message.SenderID === userId && e.message.ReceiverID === activeChat) ||
@@ -131,7 +190,13 @@ const FloatingChatButton = () => {
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          // Auto-select Announcements if no chat is selected
+          if (!activeChat) {
+            setShowAnnouncements(true);
+          }
+        }}
         style={{
           position: 'fixed',
           bottom: '2rem',
@@ -273,7 +338,16 @@ const FloatingChatButton = () => {
                 ) : (
                   chats.map(chat => {
                     const user = chatUsers[chat.otherId];
-                    const name = user ? `${user.FirstName || ''} ${user.LastName || ''}`.trim() : `User #${chat.otherId}`;
+                    const name = user
+                      ? `${user.FirstName || ''} ${user.LastName || ''}`.trim()
+                      : 'Loading...';
+                    // Check for unread messages where current user is receiver and IsRead is false
+                    let userId = null;
+                    try {
+                      const userData = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+                      userId = userData && (userData.UserID || userData.id);
+                    } catch (e) { userId = null; }
+                    const hasUnread = chat.messages.some(msg => msg.ReceiverID === userId && msg.IsRead === 0);
                     return (
                       <li
                         key={chat.otherId}
@@ -283,13 +357,51 @@ const FloatingChatButton = () => {
                           textAlign:'center',
                           cursor:'pointer',
                           borderRadius:6,
-                          background: (!showAnnouncements && activeChat === chat.otherId) ? '#e6ffe6' : '#e6e6e6',
+                          background: hasUnread
+                            ? '#ffeaea'
+                            : (!showAnnouncements && activeChat === chat.otherId)
+                              ? '#e6ffe6'
+                              : '#e6e6e6',
+                          border: hasUnread ? '2px solid #ffb3b3' : '2px solid #b6e6b6',
                           marginBottom:6,
-                          fontWeight: (!showAnnouncements && activeChat === chat.otherId) ? 700 : 500
+                          fontWeight: (!showAnnouncements && activeChat === chat.otherId) ? 700 : 500,
+                          position: 'relative'
                         }}
-                        onClick={() => {
+                        onClick={async () => {
                           setActiveChat(chat.otherId);
                           setShowAnnouncements(false);
+                          // Mark unread messages as read for this chat
+                          let userId = null;
+                          try {
+                            const userData = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+                            userId = userData && (userData.UserID || userData.id);
+                          } catch (e) { userId = null; }
+                          // Find unread messages for this chat where current user is receiver
+                          const unreadMsgIds = chat.messages
+                            .filter(msg => msg.ReceiverID === userId && msg.IsRead === 0)
+                            .map(msg => msg.UserMessageID);
+                          if (unreadMsgIds.length > 0) {
+                            await fetch('/api/usermessages/read', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                              },
+                              body: JSON.stringify({ ids: unreadMsgIds })
+                            });
+                            // Update local chat state for real-time UI
+                            setChats(prevChats => prevChats.map(c => {
+                              if (c.otherId !== chat.otherId) return c;
+                              return {
+                                ...c,
+                                messages: c.messages.map(msg =>
+                                  unreadMsgIds.includes(msg.UserMessageID)
+                                    ? { ...msg, IsRead: 1, ReadAt: new Date().toISOString() }
+                                    : msg
+                                )
+                              };
+                            }));
+                          }
                         }}
                       >
                         {name}
@@ -322,14 +434,26 @@ const FloatingChatButton = () => {
                           fontSize: 15,
                           fontWeight: 600,
                           boxShadow: '0 2px 8px #ffe06644',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'flex-start',
                         }}>
-                          <div style={{fontWeight:700, marginBottom:4}}>{a.title || 'Announcement'}</div>
-                          <div>{a.body || a.message || ''}</div>
-                          {a.created_at && <div style={{fontSize:12, color:'#b8860b99', marginTop:6}}>{new Date(a.created_at).toLocaleString()}</div>}
+                          {/* Title */}
+                          {a.title && <div style={{fontWeight:700, marginBottom:4, fontSize:16}}>{a.title}</div>}
+                          {/* Content/body/message */}
+                          <div style={{marginBottom:6, whiteSpace:'pre-line'}}>{a.Content || ''}</div>
+                          {/* Date */}
+                          {a.created_at && <div style={{fontSize:12, color:'#b8860b99', marginTop:2}}>{new Date(a.created_at).toLocaleString()}</div>}
                         </div>
                       </div>
                     ))
                   )
+                ) : loadingMessages ? (
+                  <div style={{textAlign:'center', marginTop:40}}>
+                    <div className="chat-loading-spinner" style={{display:'inline-block', width:40, height:40, border:'4px solid #eee', borderTop:'4px solid #22c55e', borderRadius:'50%', animation:'spin 1s linear infinite'}}></div>
+                    <div style={{color:'#888', marginTop:12}}>Loading messages...</div>
+                    <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+                  </div>
                 ) : (() => {
                   let userId = null;
                   try {

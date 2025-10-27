@@ -7,11 +7,39 @@ use Illuminate\Support\Facades\DB;
 
 class UserMessageController extends Controller
 {
+// ...existing code...
+    // POST /api/usermessages/read
+    public function markAsRead(Request $request)
+    {
+        $ids = $request->input('ids');
+        if (!is_array($ids) || empty($ids)) {
+            return response()->json(['error' => 'No message IDs provided'], 400);
+        }
+        $affected = \DB::table('usermessages')
+            ->whereIn('UserMessageID', $ids)
+            ->update([
+                'IsRead' => true,
+                'ReadAt' => now(),
+                'updated_at' => now(),
+            ]);
+        return response()->json(['updated' => $affected]);
+    }
     // GET /api/usermessages?sender_id=...&other_id=...
     public function index(Request $request)
     {
+        $userId = $request->query('user_id');
         $senderId = $request->query('sender_id');
         $otherId = $request->query('other_id');
+        if ($userId) {
+            // Return all messages where user is sender or receiver
+            $messages = DB::table('usermessages')
+                ->where('SenderID', $userId)
+                ->orWhere('ReceiverID', $userId)
+                ->orderBy('UserMessageID')
+                ->get();
+            return response()->json($messages);
+        }
+        // Fallback to old logic if sender_id is provided
         if (!$senderId) {
             return response()->json(['error' => 'sender_id required'], 400);
         }
@@ -45,7 +73,9 @@ class UserMessageController extends Controller
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        $msg = DB::table('usermessages')->where('UserMessageID', $id)->first();
+        $msg = \App\Models\UserMessage::find($id);
+    // Broadcast UserMessageSent event for real-time updates
+    broadcast(new \App\Events\UserMessageSent($msg))->toOthers();
         return response()->json($msg, 201);
     }
 }
