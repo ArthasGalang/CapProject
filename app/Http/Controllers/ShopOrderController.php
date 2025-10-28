@@ -8,6 +8,19 @@ use Illuminate\Database\QueryException;
 
 class ShopOrderController extends Controller
 {
+    public function updateStatus(Request $request, $orderId)
+    {
+        $status = $request->input('status');
+        if (!in_array($status, ['To Pay', 'Preparing', 'For Pickup/Delivery', 'Completed', 'Cancelled'])) {
+            return response()->json(['error' => 'Invalid status'], 400);
+        }
+        $order = \DB::table('orders')->where('OrderID', $orderId);
+        if (!$order->exists()) {
+            return response()->json(['error' => 'Order not found'], 404);
+        }
+        $order->update(['Status' => $status]);
+        return response()->json(['success' => true, 'OrderID' => $orderId, 'Status' => $status]);
+    }
     public function index()
     {
         // Prefer the view if it exists, but fall back to a safe join query
@@ -24,7 +37,7 @@ class ShopOrderController extends Controller
                     'shops.ShopName',
                     'orders.UserID',
                     DB::raw("CONCAT(users.FirstName, ' ', users.LastName) as BuyerName"),
-                    'orders.TotalAmount',
+                    'orders.TotalPrice',
                     'orders.Status',
                     'orders.OrderDate'
                 )

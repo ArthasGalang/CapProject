@@ -2,13 +2,15 @@ import React from "react";
 import AdminLayout from "@/Components/Admin/AdminLayout";
 
 export default function Reports() {
-  // Sample data
-  const reports = [
-    { id: 1, reporter: 'Anjie Co', type: 'Product', subject: 'Fake item', date: 'Sep 25, 2025', status: 'Open' },
-    { id: 2, reporter: 'Jhaycee Bocarile', type: 'User', subject: 'Spam', date: 'Sep 24, 2025', status: 'Closed' },
-    { id: 3, reporter: 'Rence Cababan', type: 'Order', subject: 'Late delivery', date: 'Sep 23, 2025', status: 'Open' },
-    { id: 4, reporter: 'Jan Galang', type: 'Product', subject: 'Wrong description', date: 'Sep 22, 2025', status: 'Closed' },
-  ];
+  const [reports, setReports] = React.useState([]);
+  React.useEffect(() => {
+    fetch('/api/reports')
+      .then(res => res.json())
+      .then(data => {
+        setReports(Array.isArray(data) ? data : []);
+        console.log('Fetched reports:', data);
+      });
+  }, []);
 
   const statusBadge = (status) => {
     if (status === 'Open') return <span className="admin-reports-status admin-reports-status-open">Open</span>;
@@ -26,7 +28,7 @@ export default function Reports() {
               <tr>
                 <th className="admin-reports-th">Reporter</th>
                 <th className="admin-reports-th">Type</th>
-                <th className="admin-reports-th">Subject</th>
+                <th className="admin-reports-th">Reason</th>
                 <th className="admin-reports-th">Date</th>
                 <th className="admin-reports-th">Status</th>
                 <th className="admin-reports-th">Action</th>
@@ -34,12 +36,20 @@ export default function Reports() {
             </thead>
             <tbody className="admin-reports-tbody">
               {reports.map((rep) => (
-                <tr key={rep.id} className="admin-reports-tr" onMouseOver={e => e.currentTarget.style.background = '#f3f4f6'} onMouseOut={e => e.currentTarget.style.background = ''}>
-                  <td className="admin-reports-td">{rep.reporter}</td>
-                  <td className="admin-reports-td">{rep.type}</td>
-                  <td className="admin-reports-td">{rep.subject}</td>
-                  <td className="admin-reports-td">{rep.date}</td>
-                  <td className="admin-reports-td">{statusBadge(rep.status)}</td>
+                <tr key={rep.ReportID} className="admin-reports-tr" onMouseOver={e => e.currentTarget.style.background = '#f3f4f6'} onMouseOut={e => e.currentTarget.style.background = ''}>
+                  <td className="admin-reports-td">{
+                    rep.FirstName && rep.LastName
+                      ? rep.FirstName + ' ' + rep.LastName
+                      : (rep.ReporterName || rep.Reporter || rep.UserName || rep.BuyerName || rep.FullName || rep.Name || rep.CreatedBy || 'N/A')
+                  }</td>
+                  <td className="admin-reports-td">{
+                    rep.Type || rep.ReportType || rep.Category || rep.ReportedType || rep.TargetType || 'N/A'
+                  }</td>
+                  <td className="admin-reports-td">{
+                    rep.Reason || rep.ReasonText || rep.Description || rep.Details || rep.Message || rep.Content || 'N/A'
+                  }</td>
+                  <td className="admin-reports-td">{rep.created_at ? new Date(rep.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}</td>
+                  <td className="admin-reports-td">{statusBadge(rep.Status || rep.status)}</td>
                   <td className="admin-reports-td">
                     <button className="admin-reports-view-btn">View</button>
                   </td>

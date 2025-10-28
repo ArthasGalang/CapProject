@@ -1,8 +1,7 @@
 
-
 <?php
-
 use Illuminate\Http\Request;
+// User Management API: Return all users
 use App\Http\Controllers\MessageController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ShopOrderController;
@@ -20,6 +19,15 @@ use App\Http\Controllers\UserMessageController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AdminMessageController;
 // User messages API (for chat)
+
+Route::patch('user/{id}/ban', function($id) {
+    $updated = DB::table('users')->where('UserID', $id)->update(['Status' => 'Banned', 'updated_at' => now()]);
+    if ($updated) {
+        return response()->json(['success' => true]);
+    } else {
+        return response()->json(['error' => 'User not found'], 404);
+    }
+});
 Route::get('/usermessages', [UserMessageController::class, 'index']);
 Route::post('/usermessages', [UserMessageController::class, 'store']);
 Route::post('/usermessages/read', [UserMessageController::class, 'markAsRead']);
@@ -33,6 +41,9 @@ Route::get('/reports/view', function() {
     $reports = DB::select('SELECT * FROM reports_view');
     return response()->json($reports);
 });
+Route::put('/orders/{order}/status', [App\Http\Controllers\ShopOrderController::class, 'updateStatus']);
+
+Route::get('/users', [App\Http\Controllers\UsersController::class, 'index']);
 
 Route::get('/top_products_by_shop', function (\Illuminate\Http\Request $request) {
     $shopId = $request->query('shop_id');
@@ -117,7 +128,7 @@ Route::get('/order-items', function(Request $request) {
         return response()->json(['error' => 'order_id required'], 400);
     }
     $items = \DB::table('order_items')->where('OrderID', $orderId)->get();
-    return response()->json(['order_items' => $items]);
+    return response()->json($items);
 });
 
 Route::get('/products/{id}', function($id) {

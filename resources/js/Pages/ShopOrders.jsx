@@ -55,6 +55,7 @@ import Footer from '../Components/Footer';
 import ShopSidebar from '../Components/ShopSidebar';
 
 const ShopOrders = (props) => {
+  const [confirmModal, setConfirmModal] = useState({ open: false, action: null });
   const [orders, setOrders] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -63,7 +64,29 @@ const ShopOrders = (props) => {
   const [sortColumn, setSortColumn] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
   const itemsPerPage = 10;
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [orderItems, setOrderItems] = useState([]);
+  const [itemsLoading, setItemsLoading] = useState(false);
 
+  // Function to open modal and fetch order items
+  const handleShowDetails = (order) => {
+    setSelectedOrder(order);
+    setModalOpen(true);
+    setItemsLoading(true);
+    fetch(`/api/order-items?order_id=${order.OrderID}`)
+      .then(res => res.json())
+      .then(data => {
+        const items = Array.isArray(data) ? data : [];
+        console.log('Order Items for OrderID', order.OrderID, items);
+        setOrderItems(items);
+        setItemsLoading(false);
+      })
+      .catch(() => {
+        setOrderItems([]);
+        setItemsLoading(false);
+      });
+  };
   // Get shopId from props (passed by Inertia)
   const shopId = props.shopId;
 
@@ -77,6 +100,10 @@ const ShopOrders = (props) => {
         // Filter orders by shopId
         const filtered = data.filter(order => order.ShopID == shopId);
         console.log('Fetched orders:', filtered);
+        // Log TotalPrice for each order
+        filtered.forEach(order => {
+          console.log(`OrderID: ${order.OrderID}, TotalPrice:`, order.TotalPrice);
+        });
         setOrders(filtered);
         setLoading(false);
       })
@@ -117,8 +144,8 @@ const ShopOrders = (props) => {
           valB = new Date(b.OrderDate || 0).getTime();
           break;
         case 'Amount':
-          valA = Number(a.TotalAmount);
-          valB = Number(b.TotalAmount);
+          valA = Number(a.TotalPrice);
+          valB = Number(b.TotalPrice);
           break;
         case 'Status':
           valA = (a.Status || '').toLowerCase();
@@ -280,7 +307,7 @@ const ShopOrders = (props) => {
                             {order.BuyerName || order.CustomerName || ''}
                           </div>
                           <div style={{ color: '#444' }}>{order.OrderDate ? new Date(order.OrderDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : ''}</div>
-                          <div style={{ color: '#1b5e20', fontWeight: 700 }}>₱{order.TotalAmount ? Number(order.TotalAmount).toFixed(2) : ''}</div>
+                          <div style={{ color: '#1b5e20', fontWeight: 700 }}>₱{order.TotalPrice ? Number(order.TotalPrice).toFixed(2) : ''}</div>
                           <div>
                             {(() => {
                               const meta = STATUS_META[order.Status] || STATUS_META[order.Status?.replace(/\s/g, '')] || { color: '#888', label: order.Status };
@@ -304,12 +331,17 @@ const ShopOrders = (props) => {
                             })()}
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                            <button className="order-action-btn" style={{ fontSize: '0.85rem', padding: '0.3rem 0.7rem', marginRight: '0.5rem', background: '#eaffef', color: '#1b8a44', border: '1px solid #cff5d9', borderRadius: 8, cursor: 'pointer', fontWeight: 700 }}>Details</button>
+                            <button className="order-action-btn" style={{ fontSize: '0.85rem', padding: '0.3rem 0.7rem', marginRight: '0.5rem', background: '#eaffef', color: '#1b8a44', border: '1px solid #cff5d9', borderRadius: 8, cursor: 'pointer', fontWeight: 700 }} onClick={() => handleShowDetails(order)}>Details</button>
                             <button
                               className="order-action-btn"
                               style={{ fontSize: '0.85rem', padding: '0.3rem 0.7rem', background: '#eaffef', color: '#1b8a44', border: '1px solid #cff5d9', borderRadius: 8, cursor: order.Status === 'Completed' ? 'not-allowed' : 'pointer', fontWeight: 700 }}
-                              onClick={() => handleNextStatus(order)}
-                              disabled={order.Status === 'Completed'}
+                              onClick={() => {
+                                if (order.Status !== 'Completed' && order.Status !== 'Cancelled') {
+                                  setSelectedOrder(order);
+                                  setConfirmModal({ open: true, action: 'next' });
+                                }
+                              }}
+                              disabled={order.Status === 'Completed' || order.Status === 'Cancelled'}
                             >
                               Next
                             </button>
@@ -331,6 +363,141 @@ const ShopOrders = (props) => {
         </div>
       </main>
       <Footer />
+      {/* Order Details Modal */}
+      {modalOpen && selectedOrder && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.18)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 4px 32px #0002', padding: '2.5rem 2rem', minWidth: 420, maxWidth: 600, maxHeight: '80vh', overflowY: 'auto', position: 'relative' }}>
+            <button onClick={() => setModalOpen(false)} style={{ position: 'absolute', top: 18, right: 18, fontSize: 22, background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontWeight: 700 }}>&times;</button>
+            <h3 style={{ fontWeight: 700, fontSize: '1.3rem', color: 'var(--color-primary)', marginBottom: 18 }}>Order Details</h3>
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontWeight: 600, fontSize: '1.08rem', marginBottom: 8 }}>Order Info</div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 10 }}>
+                <tbody>
+                  {Object.entries(selectedOrder).map(([key, value]) => (
+                    <tr key={key}>
+                      <td style={{ fontWeight: 500, color: '#888', padding: '4px 8px', width: 120 }}>{key}</td>
+                      <td style={{ padding: '4px 8px', color: '#222', fontWeight: 500 }}>{String(value)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '1.08rem', marginBottom: 8 }}>Order Items</div>
+              {itemsLoading ? (
+                <div style={{ color: '#888', fontWeight: 500, marginBottom: 8 }}>Loading items...</div>
+              ) : orderItems.length === 0 ? (
+                <div style={{ color: '#888', fontWeight: 500, marginBottom: 8 }}>No items found.</div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      {Object.keys(orderItems[0]).map((key) => (
+                        <th key={key} style={{ fontWeight: 600, color: '#888', padding: '4px 8px', background: '#f7f7f7' }}>{key}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orderItems.map((item, idx) => (
+                      <tr key={idx}>
+                        {Object.values(item).map((value, i) => (
+                          <td key={i} style={{ padding: '4px 8px', color: '#222', fontWeight: 500 }}>{String(value)}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              {/* Hide buttons if status is Cancelled or Completed */}
+              {selectedOrder.Status !== 'Completed' && selectedOrder.Status !== 'Cancelled' && (
+                <>
+                  {/* Next button */}
+                  <button
+                    style={{ background: '#22c55e', color: '#fff', fontWeight: 700, border: 'none', borderRadius: 8, padding: '0.7rem 1.6rem', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 2px 8px #22c55e22' }}
+                    onClick={() => setConfirmModal({ open: true, action: 'next' })}
+                  >Next Status</button>
+                  {/* Cancel button */}
+                  <button
+                    style={{ background: '#ef4444', color: '#fff', fontWeight: 700, border: 'none', borderRadius: 8, padding: '0.7rem 1.6rem', fontSize: '1rem', cursor: 'pointer', boxShadow: '0 2px 8px #ef444422' }}
+                    onClick={() => setConfirmModal({ open: true, action: 'cancel' })}
+                  >Cancel Order</button>
+                </>
+              )}
+            </div>
+      {/* Confirmation Modal */}
+      {confirmModal.open && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.25)', zIndex: 10000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 16px #0002', padding: '2rem 2.2rem', minWidth: 320, maxWidth: 400, position: 'relative' }}>
+            <button onClick={() => setConfirmModal({ open: false, action: null })} style={{ position: 'absolute', top: 12, right: 12, fontSize: 20, background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontWeight: 700 }}>&times;</button>
+            <div style={{ fontWeight: 700, fontSize: '1.15rem', marginBottom: 18 }}>
+              {confirmModal.action === 'next' ? 'Confirm status change?' : 'Confirm cancellation?'}
+            </div>
+            <div style={{ color: '#444', marginBottom: 22 }}>
+              {confirmModal.action === 'next'
+                ? `Are you sure you want to move this order to the next status?`
+                : `Are you sure you want to cancel this order? This action cannot be undone.`}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <button
+                style={{ background: '#eee', color: '#222', fontWeight: 600, border: 'none', borderRadius: 8, padding: '0.6rem 1.2rem', fontSize: '1rem', cursor: 'pointer' }}
+                onClick={() => setConfirmModal({ open: false, action: null })}
+              >Cancel</button>
+              <button
+                style={{ background: confirmModal.action === 'next' ? '#22c55e' : '#ef4444', color: '#fff', fontWeight: 700, border: 'none', borderRadius: 8, padding: '0.6rem 1.2rem', fontSize: '1rem', cursor: 'pointer' }}
+                onClick={async () => {
+                  if (confirmModal.action === 'next') {
+                    // Next status logic
+                    const STATUS_FLOW = ['To Pay', 'Preparing', 'For Pickup/Delivery', 'Completed'];
+                    const currentIdx = STATUS_FLOW.indexOf(selectedOrder.Status);
+                    const nextStatus = currentIdx !== -1 && currentIdx < STATUS_FLOW.length - 1 ? STATUS_FLOW[currentIdx + 1] : selectedOrder.Status;
+                    if (nextStatus === selectedOrder.Status) return;
+                    try {
+                      const res = await fetch(`/api/orders/${selectedOrder.OrderID}/status`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: nextStatus })
+                      });
+                      if (!res.ok) throw new Error('Failed to update status');
+                      setOrders(prev => prev.map(o => o.OrderID === selectedOrder.OrderID ? { ...o, Status: nextStatus } : o));
+                      setSelectedOrder({ ...selectedOrder, Status: nextStatus });
+                      setConfirmModal({ open: false, action: null });
+                    } catch (err) {
+                      alert('Failed to update status: ' + err.message);
+                    }
+                  } else if (confirmModal.action === 'cancel') {
+                    // Cancel logic
+                    try {
+                      const res = await fetch(`/api/orders/${selectedOrder.OrderID}/status`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'Cancelled' })
+                      });
+                      if (!res.ok) throw new Error('Failed to cancel order');
+                      setOrders(prev => prev.map(o => o.OrderID === selectedOrder.OrderID ? { ...o, Status: 'Cancelled' } : o));
+                      setSelectedOrder({ ...selectedOrder, Status: 'Cancelled' });
+                      setConfirmModal({ open: false, action: null });
+                      setModalOpen(false);
+                    } catch (err) {
+                      alert('Failed to cancel order: ' + err.message);
+                    }
+                  }
+                }}
+              >Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
+          </div>
+        </div>
+      )}
     </>
   );
 };
