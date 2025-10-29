@@ -124,6 +124,10 @@ Route::get('/admin/settings', function () {
 });
 
 
+Route::get('/admin/shop-management', function() {
+    return Inertia::render('Admin/ShopManagement');
+});
+
 
 
 

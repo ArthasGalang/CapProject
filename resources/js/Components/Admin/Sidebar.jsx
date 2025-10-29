@@ -7,6 +7,7 @@ export default function Sidebar({ isOpen }) {
   const navLinks = [
     { href: '/admin/dashboard', label: 'Dashboard', icon: Home },
     { href: '/admin/user-management', label: 'User Management', icon: Users },
+    { href: '/admin/shop-management', label: 'Shop Management', icon: Flag },
     { href: '/admin/reports', label: 'Reports', icon: Flag },
     { href: '/admin/messages', label: 'Messages', icon: Mail },
     { href: '/admin/settings', label: 'Settings', icon: Settings },
