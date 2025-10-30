@@ -5,15 +5,35 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
+use App\Models\User;
 
 use App\Http\Controllers\UsersController;
 
+Route::get('/auth/login', function (\Illuminate\Http\Request $request) {
+    $id = $request->query('id');
+    $hash = $request->query('hash');
+    if ($id && $hash) {
+        $user = User::find($id);
+        if ($user && sha1($user->getEmailForVerification()) === $hash) {
+            if (!$user->email_verified_at) {
+                $user->email_verified_at = Carbon::now();
+                $user->save();
+            }
+            return redirect('/?verified=1&showLoginModal=1');
+        }
+    }
+    return redirect('/?showLoginModal=1');
+});
 
 Route::get('/', function () {
     return Inertia::render('Landing'); 
 });
 
+Route::get('/login', function() {
+    return redirect('/?showLoginModal=1');
+});
 Route::get('/product', function () {
     return Inertia::render('ProductDetails');
 });
@@ -104,6 +124,11 @@ Route::get('/eshop/{id}/orders', function ($id) {
 Route::get('/eshop/{id}/settings', function ($id) {
     return Inertia::render('ShopSettings', ['shopId' => $id]);
 });
+
+Route::get('/admin/login', function () {
+    return Inertia::render('AdminLogin');
+});
+
 Route::get('/admin/dashboard', function () {
     return Inertia::render('Admin/Dashboard');
 });
@@ -134,3 +159,6 @@ Route::get('/admin/shop-management', function() {
 use App\Http\Controllers\AddressController;
 Route::get('/api/addresses', [AddressController::class, 'getUserAddresses']);
 Route::get('/users', [UsersController::class, 'index']);
+
+// Auth routes for Breeze (including email verification)
+require __DIR__.'/auth.php';

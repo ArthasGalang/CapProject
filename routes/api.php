@@ -1,3 +1,4 @@
+
 <?php
 use Illuminate\Http\Request;
 // User Management API: Return all users
@@ -19,8 +20,22 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AdminMessageController;
 // User messages API (for chat)
 
-Route::patch('user/{id}/ban', function($id) {
-    $updated = DB::table('users')->where('UserID', $id)->update(['Status' => 'Banned', 'updated_at' => now()]);
+Route::patch('/user/{id}', function(Request $request, $id) {
+    $fields = $request->only(['FirstName', 'LastName', 'ContactNumber', 'Status', 'DefaultAddress']);
+    $updated = \DB::table('users')->where('UserID', $id)->update(array_merge($fields, ['updated_at' => now()]));
+    if ($updated) {
+        $user = \DB::table('users')->where('UserID', $id)->first();
+        return response()->json($user);
+    } else {
+        return response()->json(['error' => 'User not found or no changes'], 404);
+    }
+});
+Route::patch('user/{id}/ban', function(Illuminate\Http\Request $request, $id) {
+    $status = $request->input('status', 'Banned');
+    if (!in_array($status, ['Banned', 'Offline'])) {
+        return response()->json(['error' => 'Invalid status'], 400);
+    }
+    $updated = DB::table('users')->where('UserID', $id)->update(['Status' => $status, 'updated_at' => now()]);
     if ($updated) {
         return response()->json(['success' => true]);
     } else {
@@ -30,6 +45,20 @@ Route::patch('user/{id}/ban', function($id) {
 Route::get('/usermessages', [UserMessageController::class, 'index']);
 Route::post('/usermessages', [UserMessageController::class, 'store']);
 Route::post('/usermessages/read', [UserMessageController::class, 'markAsRead']);
+Route::get('/usermessages/between/{userID1}/{userID2}', function($userID1, $userID2) {
+    $messages = DB::table('usermessages')
+        ->leftJoin('users', 'usermessages.SenderID', '=', 'users.UserID')
+        ->select('usermessages.*', 'users.FirstName as SenderFirstName', 'users.LastName as SenderLastName')
+        ->where(function($query) use ($userID1, $userID2) {
+            $query->where('SenderID', $userID1)->where('ReceiverID', $userID2);
+        })
+        ->orWhere(function($query) use ($userID1, $userID2) {
+            $query->where('SenderID', $userID2)->where('ReceiverID', $userID1);
+        })
+        ->orderBy('usermessages.created_at', 'asc')
+        ->get();
+    return response()->json($messages);
+});
 Route::get('/reports/open-count', [ReportController::class, 'openReportsCount']);
 Route::get('/adminmessages/unread-count', [AdminMessageController::class, 'unreadCount']);
 Route::get('/reports', function() {
@@ -39,6 +68,36 @@ Route::get('/reports', function() {
 Route::get('/reports/view', function() {
     $reports = DB::select('SELECT * FROM reports_view');
     return response()->json($reports);
+});
+Route::post('/reports', function(Illuminate\Http\Request $request) {
+    try {
+        $validated = $request->validate([
+            'UserID' => 'required|integer|exists:users,UserID',
+            'Reason' => 'required|string',
+            'Content' => 'required|string',
+            'ReportedLink' => 'nullable|string',
+            'TargetType' => 'required|in:User,Shop,Product,Order,Other',
+            'TargetID' => 'required',
+        ]);
+        $reportId = DB::table('reports')->insertGetId([
+            'UserID' => $validated['UserID'],
+            'Reason' => $validated['Reason'],
+            'Content' => $validated['Content'],
+            'ReportedLink' => $validated['ReportedLink'] ?? '',
+            'TargetType' => $validated['TargetType'],
+            'TargetID' => $validated['TargetID'],
+            'ReportStatus' => 'Pending',
+            'ReportDate' => now()->toDateString(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $report = DB::table('reports')->where('ReportID', $reportId)->first();
+        return response()->json($report, 201);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json(['error' => 'Validation failed', 'messages' => $e->errors()], 422);
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Server error', 'message' => $e->getMessage()], 500);
+    }
 });
 Route::put('/orders/{order}/status', [App\Http\Controllers\ShopOrderController::class, 'updateStatus']);
 
@@ -57,6 +116,20 @@ Route::get('/reports/{id}', function($id) {
     $report = \DB::table('reports')->where('ReportID', $id)->first();
     if ($report) {
         return response()->json($report);
+    } else {
+        return response()->json(['error' => 'Report not found'], 404);
+    }
+});
+
+// PATCH route for updating report status
+Route::patch('/reports/{id}', function(Illuminate\Http\Request $request, $id) {
+    $status = $request->input('ReportStatus');
+    if (!in_array($status, ['Pending', 'In Review', 'Resolved', 'Rejected'])) {
+        return response()->json(['error' => 'Invalid status'], 400);
+    }
+    $updated = \DB::table('reports')->where('ReportID', $id)->update(['ReportStatus' => $status, 'updated_at' => now()]);
+    if ($updated) {
+        return response()->json(['success' => true]);
     } else {
         return response()->json(['error' => 'Report not found'], 404);
     }
@@ -116,7 +189,7 @@ Route::delete('/cart-items/{id}', [CartItemController::class, 'destroy']);
 
 // Orders API: Get authenticated user's orders with items and products
 Route::get('/orders', [OrderController::class, 'userOrders']);
-Route::post('/orders/multi-shop', [OrderController::class, 'store']);
+Route::post('/orders/multi-shop', [OrderController::class, 'storeMultiShop']);
 Route::get('/orders/multi-shop', function() {
     return response()->json(['error' => 'GET not supported for this route. Use POST.'], 405);
 });

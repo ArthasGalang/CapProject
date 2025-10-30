@@ -1,9 +1,11 @@
 import React from "react";
 import Header from "../Components/Header";
 import Footer from "../Components/Footer";
+import FloatingChatButton from "../Components/FloatingChatButton";
 
 const BrowseShop = () => {
     const [shops, setShops] = React.useState([]);
+    const [nameSearch, setNameSearch] = React.useState('');
     const [hoveredIdx, setHoveredIdx] = React.useState(null);
     const [page, setPage] = React.useState(1);
     const [hasMore, setHasMore] = React.useState(true);
@@ -22,9 +24,10 @@ const BrowseShop = () => {
         // Always fetch all shops for category filtering (client-side)
         const res = await fetch(`/api/shops?page=${pageNum}&limit=${PAGE_SIZE}`);
         let data = await res.json();
-        // Filter by verified/unverified
-        if (verified === 'verified') data = data.filter(shop => shop.isVerified);
-        if (verified === 'unverified') data = data.filter(shop => !shop.isVerified);
+    // Filter by verification status
+    data = data.filter(shop => shop.Verification !== 'Rejected');
+    if (verified === 'verified') data = data.filter(shop => shop.Verification === 'Verified');
+    if (verified === 'unverified') data = data.filter(shop => shop.Verification === 'Pending');
 
         // Category filter: fetch all products and filter shops that have at least one product in the selected category
         if (category !== 'all') {
@@ -129,8 +132,14 @@ const BrowseShop = () => {
                     <h3 style={{ fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '24px' }}>Filters</h3>
                     {/* Shop Name Search */}
                     <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Search</label>
-                        <input type="text" placeholder="Shop name..." style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }} />
+                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Search by Name</label>
+                        <input
+                            type="text"
+                            placeholder="Shop name..."
+                            value={nameSearch}
+                            onChange={e => setNameSearch(e.target.value)}
+                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }}
+                        />
                     </div>
                     {/* Sort Section */}
                     <div style={{ marginBottom: '20px' }}>
@@ -144,11 +153,6 @@ const BrowseShop = () => {
                             <option value="name-asc">Name: A-Z</option>
                             <option value="name-desc">Name: Z-A</option>
                         </select>
-                    </div>
-                    {/* Location Filter */}
-                    <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Location</label>
-                        <input type="text" placeholder="e.g. Valenzuela, Manila" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }} />
                     </div>
                     {/* Category Filter */}
                     <div style={{ marginBottom: '20px' }}>
@@ -177,13 +181,8 @@ const BrowseShop = () => {
                             <option value="unverified">Unverified</option>
                         </select>
                     </div>
-                    {/* Tag Filter */}
-                    <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Tags</label>
-                        <input type="text" placeholder="e.g. popular, new" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }} />
-                    </div>
                     {/* Apply Button */}
-                    <button
+                    {/* <button
                         onMouseEnter={e => e.currentTarget.style.background = '#229954'}
                         onMouseLeave={e => e.currentTarget.style.background = '#2ECC71'}
                         style={{
@@ -202,7 +201,7 @@ const BrowseShop = () => {
                         }}
                     >
                         Apply
-                    </button>
+                    </button> */}
                 </aside>
                 {/* Main Card */}
                 <div ref={cardRef} style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', padding: '40px 32px 32px 32px', minHeight: '120px', width: '100%', maxHeight: '845px', overflowY: 'auto' }}>
@@ -217,7 +216,9 @@ const BrowseShop = () => {
                             shops.length === 0 ? (
                                 <div style={{ width: '100%', textAlign: 'center', color: '#888', fontSize: '1.2rem', marginTop: '48px' }}>No shops found.</div>
                             ) : (
-                                shops.map((shop, idx) => {
+                                shops
+                                    .filter(shop => nameSearch.trim() === '' || (shop.ShopName || '').toLowerCase().includes(nameSearch.trim().toLowerCase()))
+                                    .map((shop, idx) => {
                                     const isHovered = hoveredIdx === idx;
                                     let bannerUrl = 'https://svgshare.com/i/13uA.svg';
                                     if (shop.BackgroundImage && typeof shop.BackgroundImage === 'string' && shop.BackgroundImage.trim() !== '') {
@@ -256,8 +257,8 @@ const BrowseShop = () => {
                                                 top: 12,
                                                 right: 16,
                                                 zIndex: 2,
-                                                background: shop.isVerified ? '#eafff3' : '#fff3f3',
-                                                color: shop.isVerified ? '#27ae60' : '#e74c3c',
+                                                background: shop.Verification === 'Verified' ? '#eafff3' : '#fff3f3',
+                                                color: shop.Verification === 'Verified' ? '#27ae60' : '#e74c3c',
                                                 fontWeight: 600,
                                                 fontSize: '0.95rem',
                                                 padding: '4px 14px',
@@ -265,10 +266,10 @@ const BrowseShop = () => {
                                                 boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
                                                 letterSpacing: '0.5px',
                                                 userSelect: 'none',
-                                                border: shop.isVerified ? '1.5px solid #2ecc71' : '1.5px solid #e74c3c',
+                                                border: shop.Verification === 'Verified' ? '1.5px solid #2ecc71' : '1.5px solid #e74c3c',
                                                 transition: 'background 0.2s, color 0.2s',
                                             }}>
-                                                {shop.isVerified ? 'Verified' : 'Unverified'}
+                                                {shop.Verification === 'Verified' ? 'Verified' : 'Unverified'}
                                             </div>
                                             {/* Banner background */}
                                             <div style={{
@@ -333,6 +334,7 @@ const BrowseShop = () => {
                     </div>
                 </div>
             </div>
+            <FloatingChatButton />
             <Footer />
         </>
     );

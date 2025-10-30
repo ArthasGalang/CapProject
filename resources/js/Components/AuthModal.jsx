@@ -55,20 +55,26 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
 
   // Registration form state
   const [regForm, setRegForm] = useState({
-  firstName: '',
-  lastName: '',
-  password: '',
-  confirmPassword: '',
-  email: '',
-  contactNumber: '',
-  barangay: '',
-  municipality: '',
-  zipcode: '',
-  houseNumber: '',
-  street: '',
+    firstName: '',
+    lastName: '',
+    password: '',
+    confirmPassword: '',
+    email: '',
+    contactNumber: '',
+    barangay: '',
+    municipality: '',
+    zipcode: '',
+    houseNumber: '',
+    street: '',
   });
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [regError, setRegError] = useState('');
   const [regSuccess, setRegSuccess] = useState('');
+  const [showVerifyPrompt, setShowVerifyPrompt] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState('');
+  const [resendError, setResendError] = useState('');
 
   const handleRegChange = e => {
     setRegForm({ ...regForm, [e.target.name]: e.target.value });
@@ -78,8 +84,13 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
     e.preventDefault();
     setRegError('');
     setRegSuccess('');
+    setShowVerifyPrompt(false);
     if (!regForm.firstName || !regForm.lastName || !regForm.email || !regForm.password || !regForm.confirmPassword) {
       setRegError('Please fill out all required fields.');
+      return;
+    }
+    if (!acceptTerms || !acceptPrivacy) {
+      setRegError('You must accept the Terms and Conditions and Privacy Policy.');
       return;
     }
     if (regForm.password !== regForm.confirmPassword) {
@@ -95,7 +106,7 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
       });
       const data = await res.json();
       if (res.ok) {
-        setRegSuccess('Registration successful!');
+        setRegSuccess('Registration successful! Please check your email.');
         setRegForm({
           firstName: '', lastName: '', password: '', confirmPassword: '',
           email: '', contactNumber: '', barangay: '', municipality: '', zipcode: '', houseNumber: '', street: ''
@@ -104,8 +115,16 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
         if (data.address && (data.address.AddressID || data.address.id)) {
           localStorage.setItem('lastAddressID', data.address.AddressID || data.address.id);
         }
+        // Show verify prompt if user is not verified
+        if (data.user && !data.user.email_verified_at) {
+          setShowVerifyPrompt(true);
+        }
       } else {
-        setRegError(data.message || 'Registration failed.');
+        if (data.errors) {
+          setRegError(Object.values(data.errors).flat().join(' '));
+        } else {
+          setRegError(data.message || 'Registration failed.');
+        }
       }
     } catch (err) {
       setRegError('Server error.');
@@ -132,59 +151,103 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
         </div>
         <div className={isSignIn ? "auth-modal-content-better" : "auth-modal-scrollable-content-better"}>
           {isSignIn ? (
-              <form className="auth-modal-content-better" onSubmit={handleLogin}>
-                <h2 className="auth-modal-title-better">Login</h2>
-                <input type="email" name="email" value={loginForm.email} onChange={handleLoginChange} placeholder="Email" className="auth-input-better" required disabled={loadingLogin} />
-                <input type="password" name="password" value={loginForm.password} onChange={handleLoginChange} placeholder="Password" className="auth-input-better" required disabled={loadingLogin} />
-                <p className="auth-forgot-password-better">Forgot your password?</p>
-                <div className="auth-modal-actions-better">
-                  <button className="auth-button-better" type="submit" disabled={loadingLogin}>{loadingLogin ? 'Logging in...' : 'Login'}</button>
-                  <p className="terms-text" style={{textAlign: 'center', fontSize: '0.98rem', marginTop: '0.7rem'}}>
-                    <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', textDecoration: 'underline', fontWeight: 500 }}>
-                      Terms and Conditions
-                    </a>
-                  </p>
-                  {loginError && <div className="auth-error-better">{loginError}</div>}
-                </div>
-              </form>
-          ) : (
-            <form className="auth-modal-content-better" onSubmit={handleRegister}>
-              <h2 className="auth-modal-title-better">Register</h2>
-              {/* Account Section */}
-              <div className="auth-section-better">
-                <h3 className="auth-section-title-better">Account</h3>
-                <input type="text" name="firstName" value={regForm.firstName} onChange={handleRegChange} placeholder="First Name" className="auth-input-better" required disabled={loadingRegister} />
-                <input type="text" name="lastName" value={regForm.lastName} onChange={handleRegChange} placeholder="Last Name" className="auth-input-better" required disabled={loadingRegister} />
-                <input type="password" name="password" value={regForm.password} onChange={handleRegChange} placeholder="Password" className="auth-input-better" required disabled={loadingRegister} />
-                <input type="password" name="confirmPassword" value={regForm.confirmPassword} onChange={handleRegChange} placeholder="Confirm Password" className="auth-input-better" required disabled={loadingRegister} />
-              </div>
-              {/* Contact Section */}
-              <div className="auth-section-better">
-                <h3 className="auth-section-title-better">Contact</h3>
-                <input type="email" name="email" value={regForm.email} onChange={handleRegChange} placeholder="Email" className="auth-input-better" required disabled={loadingRegister} />
-                <input type="text" name="contactNumber" value={regForm.contactNumber} onChange={handleRegChange} placeholder="Contact Number" className="auth-input-better" required disabled={loadingRegister} />
-              </div>
-              {/* Address Section */}
-              <div className="auth-section-better">
-                <h3 className="auth-section-title-better">Address</h3>
-                <input type="text" name="street" value={regForm.street} onChange={handleRegChange} placeholder="Street" className="auth-input-better" required disabled={loadingRegister} />
-                <input type="text" name="barangay" value={regForm.barangay} onChange={handleRegChange} placeholder="Barangay" className="auth-input-better" required disabled={loadingRegister} />
-                <input type="text" name="municipality" value={regForm.municipality} onChange={handleRegChange} placeholder="Municipality" className="auth-input-better" required disabled={loadingRegister} />
-                <input type="text" name="zipcode" value={regForm.zipcode} onChange={handleRegChange} placeholder="Zipcode" className="auth-input-better" required disabled={loadingRegister} />
-                <input type="text" name="houseNumber" value={regForm.houseNumber} onChange={handleRegChange} placeholder="House Number" className="auth-input-better" required disabled={loadingRegister} />
-              </div>
-              {/* Sign Up button and switch link below all sections */}
+            <form className="auth-modal-content-better" onSubmit={handleLogin}>
+              <h2 className="auth-modal-title-better">Login</h2>
+              <input type="email" name="email" value={loginForm.email} onChange={handleLoginChange} placeholder="Email" className="auth-input-better" required disabled={loadingLogin} />
+              <input type="password" name="password" value={loginForm.password} onChange={handleLoginChange} placeholder="Password" className="auth-input-better" required disabled={loadingLogin} />
+              <p className="auth-forgot-password-better">Forgot your password?</p>
               <div className="auth-modal-actions-better">
-                <button className="auth-button-better" type="submit" disabled={loadingRegister}>{loadingRegister ? 'Registering...' : 'Register'}</button>
+                {loginError && <div className="auth-error-better">{loginError}</div>}
+                <button className="auth-button-better" type="submit" disabled={loadingLogin}>{loadingLogin ? 'Logging in...' : 'Login'}</button>
                 <p className="terms-text" style={{textAlign: 'center', fontSize: '0.98rem', marginTop: '0.7rem'}}>
                   <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', textDecoration: 'underline', fontWeight: 500 }}>
                     Terms and Conditions
                   </a>
+                  <br />
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', textDecoration: 'underline', fontWeight: 500, marginTop: '0.3rem', display: 'inline-block' }}>
+                    Privacy Policy
+                  </a>
                 </p>
-                {regError && <div className="auth-error-better">{regError}</div>}
-                {regSuccess && <div className="auth-success-better">{regSuccess}</div>}
               </div>
             </form>
+          ) : (
+            <>
+              {showVerifyPrompt ? (
+                <div className="auth-modal-content-better" style={{textAlign:'center', marginTop:40}}>
+                  <h2 className="auth-modal-title-better">Verify Your Email</h2>
+                  <div style={{marginBottom:12, color:'#555', fontSize:'1.08rem'}}>A verification link has been sent to your email. Please check your inbox and click the link to activate your account.</div>
+                  <button className="auth-button-better" style={{margin:'0 auto', minWidth:180}} disabled={resendLoading} onClick={async()=>{
+                    setResendLoading(true);
+                    setResendSuccess('');
+                    setResendError('');
+                    try {
+                      const token = localStorage.getItem('authToken');
+                      const res = await fetch('http://127.0.0.1:8000/email/verification-notification', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Accept': 'application/json',
+                          'Authorization': `Bearer ${token}`
+                        },
+                      });
+                      if (res.ok) {
+                        setResendSuccess('Verification email resent!');
+                      } else {
+                        setResendError('Failed to resend verification email.');
+                      }
+                    } catch (err) {
+                      setResendError('Server error.');
+                    }
+                    setResendLoading(false);
+                  }}>Resend Verification Email</button>
+                  {resendSuccess && <div className="auth-success-better">{resendSuccess}</div>}
+                  {resendError && <div className="auth-error-better">{resendError}</div>}
+                </div>
+              ) : (
+                <form className="auth-modal-content-better" onSubmit={handleRegister}>
+                  <h2 className="auth-modal-title-better">Register</h2>
+                  {/* Account Section */}
+                  <div className="auth-section-better">
+                    <h3 className="auth-section-title-better">Account</h3>
+                    <input type="text" name="firstName" value={regForm.firstName} onChange={handleRegChange} placeholder="First Name" className="auth-input-better" required disabled={loadingRegister} />
+                    <input type="text" name="lastName" value={regForm.lastName} onChange={handleRegChange} placeholder="Last Name" className="auth-input-better" required disabled={loadingRegister} />
+                    <input type="password" name="password" value={regForm.password} onChange={handleRegChange} placeholder="Password" className="auth-input-better" required disabled={loadingRegister} />
+                    <input type="password" name="confirmPassword" value={regForm.confirmPassword} onChange={handleRegChange} placeholder="Confirm Password" className="auth-input-better" required disabled={loadingRegister} />
+                  </div>
+                  {/* Contact Section */}
+                  <div className="auth-section-better">
+                    <h3 className="auth-section-title-better">Contact</h3>
+                    <input type="email" name="email" value={regForm.email} onChange={handleRegChange} placeholder="Email" className="auth-input-better" required disabled={loadingRegister} />
+                    <input type="text" name="contactNumber" value={regForm.contactNumber} onChange={handleRegChange} placeholder="Contact Number" className="auth-input-better" required disabled={loadingRegister} />
+                  </div>
+                  {/* Address Section */}
+                  <div className="auth-section-better">
+                    <h3 className="auth-section-title-better">Address</h3>
+                    <input type="text" name="street" value={regForm.street} onChange={handleRegChange} placeholder="Street" className="auth-input-better" required disabled={loadingRegister} />
+                    <input type="text" name="barangay" value={regForm.barangay} onChange={handleRegChange} placeholder="Barangay" className="auth-input-better" required disabled={loadingRegister} />
+                    <input type="text" name="municipality" value={regForm.municipality} onChange={handleRegChange} placeholder="Municipality" className="auth-input-better" required disabled={loadingRegister} />
+                    <input type="text" name="zipcode" value={regForm.zipcode} onChange={handleRegChange} placeholder="Zipcode" className="auth-input-better" required disabled={loadingRegister} />
+                    <input type="text" name="houseNumber" value={regForm.houseNumber} onChange={handleRegChange} placeholder="House Number" className="auth-input-better" required disabled={loadingRegister} />
+                  </div>
+                  {/* Sign Up button and switch link below all sections */}
+                  <div className="auth-modal-actions-better">
+                    <div style={{marginBottom:'0.7rem', textAlign:'left'}}>
+                      <label style={{display:'flex',alignItems:'center',marginBottom:'0.3rem'}}>
+                        <input type="checkbox" checked={acceptTerms} onChange={e=>setAcceptTerms(e.target.checked)} style={{marginRight:'8px'}} />
+                        I accept the <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', textDecoration: 'underline', fontWeight: 500, marginLeft:'4px' }}>Terms and Conditions</a>
+                      </label>
+                      <label style={{display:'flex',alignItems:'center'}}>
+                        <input type="checkbox" checked={acceptPrivacy} onChange={e=>setAcceptPrivacy(e.target.checked)} style={{marginRight:'8px'}} />
+                        I accept the <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)', textDecoration: 'underline', fontWeight: 500, marginLeft:'4px' }}>Privacy Policy</a>
+                      </label>
+                    </div>
+                    {regError && <div className="auth-error-better">{regError}</div>}
+                    {regSuccess && <div className="auth-success-better">{regSuccess}</div>}
+                    <button className="auth-button-better" type="submit" disabled={loadingRegister || !acceptTerms || !acceptPrivacy}>{loadingRegister ? 'Registering...' : 'Register'}</button>
+                  </div>
+                </form>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -221,11 +221,19 @@ const Header = () => {
                 <User size={22} />
               </button>
               {typeof window !== 'undefined' && showAccountMenu && (
-                <div style={{position: 'absolute', right: 0, top: '2.5rem', background: '#fff', borderRadius: 8, boxShadow: '0 2px 12px rgba(0,0,0,0.10)', minWidth: 140, zIndex: 100, padding: '0.5rem 0'}}>
+                <div style={{position: 'absolute', right: 0, top: '2.5rem', background: '#fff', borderRadius: 8, boxShadow: '0 2px 12px rgba(0,0,0,0.10)', minWidth: 160, zIndex: 100, padding: '0.5rem 0'}}>
                   <button
                     style={{width: '100%', background: 'none', border: 'none', padding: '0.7rem 1.2rem', textAlign: 'left', cursor: 'pointer', fontSize: '1rem'}}
                     onClick={() => { setShowAccountMenu(false); window.location.href = '/account'; }}
                   >Account</button>
+                  <button
+                    style={{width: '100%', background: 'none', border: 'none', padding: '0.7rem 1.2rem', textAlign: 'left', cursor: 'pointer', fontSize: '1rem'}}
+                    onClick={() => { setShowAccountMenu(false); window.location.href = '/account/orders'; }}
+                  >Orders</button>
+                  <button
+                    style={{width: '100%', background: 'none', border: 'none', padding: '0.7rem 1.2rem', textAlign: 'left', cursor: 'pointer', fontSize: '1rem'}}
+                    onClick={() => { setShowAccountMenu(false); window.location.href = '/account/addresses'; }}
+                  >Addresses</button>
                   <div style={{height: 1, background: '#eee', margin: '0.2rem 0'}}></div>
                   {userId ? (
                     <button

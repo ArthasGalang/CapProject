@@ -1,3 +1,5 @@
+import FloatingChatButton from "../Components/FloatingChatButton";
+
 // --- Image normalization logic from ProductCard ---
 const placeholderProductImage = 'https://via.placeholder.com/60x60?text=Product';
 const normalizeImageUrl = (val) => {
@@ -479,6 +481,7 @@ const Cart = () => {
           </div>
         </div>
       </main>
+      <FloatingChatButton />
       <Footer />
     </>
   );

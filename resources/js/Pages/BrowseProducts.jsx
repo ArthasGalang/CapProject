@@ -3,7 +3,7 @@
 import React from "react";
 import Header from "../Components/Header";
 import ProductCard from "../Components/ProductCard";
-
+import FloatingChatButton from "../Components/FloatingChatButton";
 import Footer from "../Components/Footer";
 
 
@@ -18,12 +18,15 @@ const BrowseProducts = () => {
     const [loading, setLoading] = React.useState(true);
     const [scrollLoading, setScrollLoading] = React.useState(false);
     // Filter states
-    const [category, setCategory] = React.useState('All');
+    const [category, setCategory] = React.useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('category') || 'All';
+    });
     const [minPrice, setMinPrice] = React.useState('');
     const [maxPrice, setMaxPrice] = React.useState('');
     const [rating, setRating] = React.useState('');
     const [search, setSearch] = React.useState('');
-    const [tags, setTags] = React.useState('');
+    // Removed tags filter
     const PAGE_SIZE = 20;
 
     // Fetch all products (for filtering)
@@ -78,12 +81,7 @@ const BrowseProducts = () => {
         if (search) {
             filtered = filtered.filter(p => (p.ProductName || '').toLowerCase().includes(search.toLowerCase()));
         }
-        if (tags) {
-            const tagArr = tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
-            if (tagArr.length > 0) {
-                filtered = filtered.filter(p => tagArr.every(tag => (p.Description || '').toLowerCase().includes(tag)));
-            }
-        }
+        // Removed tags filter
         // Sort client-side
         let sorted = [...filtered];
         if (sortField === 'price-asc') sorted.sort((a, b) => (a.Price || 0) - (b.Price || 0));
@@ -92,7 +90,7 @@ const BrowseProducts = () => {
         if (sortField === 'name-desc') sorted.sort((a, b) => (b.ProductName || '').localeCompare(a.ProductName || ''));
         if (sortField === 'newest') sorted.sort((a, b) => (b.ProductID || 0) - (a.ProductID || 0));
         setProducts(sorted);
-    }, [allProducts, category, minPrice, maxPrice, rating, search, tags, sortField]);
+    }, [allProducts, category, minPrice, maxPrice, rating, search, sortField]);
 
     const handleSortChange = (field) => {
         setSortField(field);
@@ -106,7 +104,7 @@ const BrowseProducts = () => {
     const handleMaxPriceChange = e => setMaxPrice(e.target.value);
     const handleRatingChange = e => setRating(e.target.value);
     const handleSearchChange = e => setSearch(e.target.value);
-    const handleTagsChange = e => setTags(e.target.value);
+    // Removed tags filter handler
 
     // Infinite scroll logic
     const cardRef = React.useRef(null);
@@ -199,18 +197,9 @@ const BrowseProducts = () => {
                             <option value="1">1 ★ & up</option>
                         </select>
                     </div>
-                    {/* Shop Location */}
-                    <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Shop Location</label>
-                        <input type="text" placeholder="e.g. Valenzuela, Manila" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }} />
-                    </div>
-                    {/* Tags */}
-                    <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Tags</label>
-                        <input type="text" placeholder="e.g. sale, new, popular" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e0e0e0', fontSize: '1rem' }} value={tags} onChange={handleTagsChange} />
-                    </div>
+                    {/* Removed Shop Location and Tags filter UI */}
                     {/* Apply Button */}
-                    <button
+                    {/* <button
                         onClick={() => {}} // filters are live, so no need to trigger fetch
                         onMouseEnter={e => e.currentTarget.style.background = '#229954'}
                         onMouseLeave={e => e.currentTarget.style.background = '#2ECC71'}
@@ -230,7 +219,7 @@ const BrowseProducts = () => {
                         }}
                     >
                         Apply
-                    </button>
+                    </button> */}
                 </aside>
                 {/* Main Card */}
                 <div ref={cardRef} style={{ background: '#fff', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', padding: '40px 32px 32px 32px', minHeight: '120px', width: '100%', maxHeight: '845px', overflowY: 'auto' }}>
@@ -255,7 +244,12 @@ const BrowseProducts = () => {
                                         onClick={() => window.location.href = `/product/${product.ProductID || ''}`}
                                         buttonProps={{
                                             onAddToCart: (e, product) => {},
-                                            onBuyNow: (e, product) => {},
+                                            onBuyNow: (e, product) => {
+                                                e.stopPropagation();
+                                                // Store product in localStorage for checkout
+                                                localStorage.setItem('checkoutItems', JSON.stringify([{ ...product, Quantity: 1, Subtotal: product.Price }]));
+                                                window.location.href = '/checkout';
+                                            },
                                         }}
                                     />
                                 ))
@@ -270,6 +264,7 @@ const BrowseProducts = () => {
                     </div>
                 </div>
             </div>
+            <FloatingChatButton />
             <Footer />
         </>
     );

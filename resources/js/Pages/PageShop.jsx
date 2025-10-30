@@ -1,4 +1,5 @@
 // ...existing imports and code...
+import FloatingChatButton from "../Components/FloatingChatButton";
 // Dummy products for shop page
 const dummyProducts = [
     {
@@ -22,6 +23,7 @@ const dummyProducts = [
 ];
 import React from "react";
 import ProductCard from "../Components/ProductCard";
+import ReportProductButton from "../Components/ReportProductButton";
 let usePage;
 try {
     // Only import if available (Inertia context)
@@ -156,17 +158,19 @@ const ShopPage = () => {
     return (
         <>
             <Header />
-            <div style={{ maxWidth: '1400px', margin: '40px auto', background: '#fff', borderRadius: '18px', boxShadow: '0 10px 48px rgba(0,0,0,0.13)', overflow: 'hidden' }}>
+            <div style={{ maxWidth: '1400px', margin: '40px auto', background: '#fff', borderRadius: '18px', boxShadow: '0 10px 48px rgba(0,0,0,0.13)', overflow: 'hidden', position: 'relative' }}>
+                {/* Report Button - Top Right */}
+                <ReportProductButton productId={shopData.ShopID} />
                 {/* Banner */}
                 <div style={{ width: '100%', height: '200px', background: `url(${bgUrl}) center/cover`, position: 'relative' }}>
                     <img src={logoUrl} alt="Shop Logo" style={{ position: 'absolute', right: '32px', bottom: '-60px', width: '120px', height: '120px', borderRadius: '50%', border: '4px solid #fff', boxShadow: '0 2px 12px rgba(0,0,0,0.10)' }} />
                     {/* Social Media Icons under logo */}
-                    <div style={{ position: 'absolute', right: '32px', bottom: '-110px', display: 'flex', gap: '18px', alignItems: 'center', background: 'transparent' }}>
+                    {/* <div style={{ position: 'absolute', right: '32px', bottom: '-110px', display: 'flex', gap: '18px', alignItems: 'center', background: 'transparent' }}>
                         <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" title="Facebook"><FacebookIcon /></a>
                         <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" title="Instagram"><InstagramIcon /></a>
                         <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" title="Twitter"><TwitterIcon /></a>
                         <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer" title="TikTok"><TikTokIcon /></a>
-                    </div>
+                    </div> */}
                 </div>
                 <div style={{ padding: '30px 40px 32px 40px' }}>
                     <h1 style={{ fontSize: '2.2rem', fontWeight: 700, marginBottom: '8px', color: '#222' }}>{shopData.ShopName}</h1>
@@ -381,6 +385,7 @@ const ShopPage = () => {
                     </div>
                 </div>
             </div>
+            <FloatingChatButton />
             <Footer />
         </>
     );

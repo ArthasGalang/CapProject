@@ -22,6 +22,11 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
+        // Prevent login if email is not verified
+        if (empty($user->email_verified_at)) {
+            return response()->json(['message' => 'Please verify your email before logging in.'], 403);
+        }
+
         // If you want to use Sanctum, you need to extend Authenticatable in Users model and use HasApiTokens
         $token = null;
         if (method_exists($user, 'createToken')) {

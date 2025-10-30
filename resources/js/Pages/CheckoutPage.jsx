@@ -3,21 +3,61 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import Header from "../Components/Header";
 import { usePage } from '@inertiajs/react';
+import FloatingChatButton from "../Components/FloatingChatButton";
 
 const CheckoutPage = () => {
+    const [checkoutLoading, setCheckoutLoading] = useState(false);
     const { props } = usePage();
     const { userId, selectedCartItemIds, total } = props;
     const [checkoutItems, setCheckoutItems] = useState([]);
-    // Fetch cart item details using IDs
+    // Load checkoutItems from localStorage if no selectedCartItemIds (Buy Now)
     useEffect(() => {
-        if (selectedCartItemIds && selectedCartItemIds.length > 0) {
-            fetch(`/api/cart-items/checkout?ids=${selectedCartItemIds.join(',')}`)
-                .then(res => res.json())
-                .then(data => setCheckoutItems(data));
-        } else {
-            setCheckoutItems([]);
+        setCheckoutLoading(true);
+        // If tempCartItems is present (Buy Now from ProductDetails), use it directly
+        if (props.tempCartItems && Array.isArray(props.tempCartItems) && props.tempCartItems.length > 0) {
+            setCheckoutItems(props.tempCartItems);
+            setCheckoutLoading(false);
+            return;
         }
-    }, [selectedCartItemIds]);
+        // If selectedCartItemIds contains any temp IDs, load from localStorage
+        if (selectedCartItemIds && selectedCartItemIds.length > 0) {
+            const hasTemp = selectedCartItemIds.some(id => String(id).startsWith('temp-'));
+            if (hasTemp) {
+                try {
+                    const local = localStorage.getItem('checkoutItems');
+                    if (local) {
+                        const allItems = JSON.parse(local);
+                        // Only show items matching selectedCartItemIds
+                        const filtered = allItems.filter(item => selectedCartItemIds.includes(item.CartItemID));
+                        setCheckoutItems(filtered);
+                    } else {
+                        setCheckoutItems([]);
+                    }
+                } catch (e) {
+                    setCheckoutItems([]);
+                }
+                setCheckoutLoading(false);
+            } else {
+                fetch(`/api/cart-items/checkout?ids=${selectedCartItemIds.join(',')}`)
+                    .then(res => res.json())
+                    .then(data => setCheckoutItems(data))
+                    .finally(() => setCheckoutLoading(false));
+            }
+        } else {
+            // Try to load from localStorage for Buy Now
+            try {
+                const local = localStorage.getItem('checkoutItems');
+                if (local) {
+                    setCheckoutItems(JSON.parse(local));
+                } else {
+                    setCheckoutItems([]);
+                }
+            } catch (e) {
+                setCheckoutItems([]);
+            }
+            setCheckoutLoading(false);
+        }
+    }, [selectedCartItemIds, props.tempCartItems]);
 
     // Fetch shop names for each ShopID in checkoutItems
     const [shopNames, setShopNames] = useState({});
@@ -25,6 +65,18 @@ const CheckoutPage = () => {
     useEffect(() => {
         const shopIds = Array.from(new Set((checkoutItems || []).map(item => item.ShopID)));
         if (shopIds.length === 0) return;
+        // If checkoutItems are from Buy Now, try to load shop info from localStorage
+        if (!selectedCartItemIds || selectedCartItemIds.length === 0) {
+            try {
+                const localShopNames = localStorage.getItem('checkoutShopNames');
+                const localShopMap = localStorage.getItem('checkoutShopMap');
+                if (localShopNames && localShopMap) {
+                    setShopNames(JSON.parse(localShopNames));
+                    setShopMap(JSON.parse(localShopMap));
+                    return;
+                }
+            } catch (e) {}
+        }
         fetch(`/api/shops/many?ids=${shopIds.join(',')}`)
             .then(res => res.json())
             .then(shops => {
@@ -38,8 +90,13 @@ const CheckoutPage = () => {
                 });
                 setShopNames(names);
                 setShopMap(map);
+                // Store for Buy Now
+                try {
+                    localStorage.setItem('checkoutShopNames', JSON.stringify(names));
+                    localStorage.setItem('checkoutShopMap', JSON.stringify(map));
+                } catch (e) {}
             });
-    }, [checkoutItems]);
+    }, [checkoutItems, selectedCartItemIds]);
     // Log received data
     useEffect(() => {
         console.log('CheckoutPage received:', { userId, selectedCartItemIds, total, checkoutItems });
@@ -99,10 +156,15 @@ const CheckoutPage = () => {
     }, [userId]);
 
     // Prepare and submit orders per shop
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [orderSuccess, setOrderSuccess] = useState(false);
     const handlePlaceOrder = async () => {
         // Validation
-        if (!selectedAddressId) {
-            console.error('Validation error: No address selected');
+        // Check if any shop is for Delivery
+        const shopIds = Array.from(new Set((checkoutItems || []).map(item => item.ShopID)));
+        const anyDelivery = shopIds.some(shopId => (shopNotes[`receive-${shopId}`] || 'Delivery') === 'Delivery');
+        if (anyDelivery && useExistingAddress && !selectedAddressId) {
+            console.error('Validation error: No address selected for delivery');
             toast.error('Please select a delivery address.');
             return;
         }
@@ -121,6 +183,31 @@ const CheckoutPage = () => {
             toast.error('No items to checkout.');
             return;
         }
+
+        // If not using existing address and any shop is for Delivery, create new address and get its AddressID
+        let newAddressId = '';
+        if (anyDelivery && !useExistingAddress) {
+            try {
+                const res = await fetch('/api/addresses', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ...addressForm,
+                        UserID: userId
+                    })
+                });
+                const data = await res.json();
+                if (data && data.AddressID) {
+                    newAddressId = data.AddressID;
+                } else {
+                    toast.error('Failed to create address.');
+                    return;
+                }
+            } catch (e) {
+                toast.error('Network error creating address.');
+                return;
+            }
+        }
         // Group items by shop
         const itemsByShop = checkoutItems.reduce((acc, item) => {
             if (!acc[item.ShopID]) acc[item.ShopID] = [];
@@ -137,14 +224,16 @@ const CheckoutPage = () => {
             const shopPayment = payNote === 'QR' ? 'EWallet' : 'CoD';
             let addressId = '';
             if (shopReceive === 'Pickup') {
-                // Use AddressID from the shops table
-                addressId = shopMap[shopId]?.AddressID || '';
+                // Use AddressID from the shop (shops table)
+                addressId = shopMap[shopId]?.AddressID ? parseInt(shopMap[shopId].AddressID, 10) : '';
             } else {
-                // Use only the AddressID from the selected address dropdown
-                addressId = selectedAddressId;
+                // Use AddressID from the selected address dropdown or new address
+                if (useExistingAddress) {
+                    addressId = selectedAddressId ? parseInt(selectedAddressId, 10) : '';
+                } else {
+                    addressId = newAddressId ? parseInt(newAddressId, 10) : '';
+                }
             }
-            // Ensure AddressID is an integer if possible
-            addressId = addressId ? parseInt(addressId, 10) : '';
             // Always send a non-empty string for BuyerNote
             let buyerNote = shopNotes[shopId];
             if (typeof buyerNote !== 'string' || buyerNote.trim() === '') {
@@ -166,7 +255,7 @@ const CheckoutPage = () => {
                 UserID: userId ? parseInt(userId, 10) : '',
                 AddressID: addressId,
                 TotalAmount: totalAmount,
-                Status: 'ToPay',
+                Status: 'To Pay',
                 OrderDate: new Date().toISOString().slice(0, 10),
                 PaymentMethod: shopPayment,
                 BuyerNote: buyerNote,
@@ -206,7 +295,8 @@ const CheckoutPage = () => {
         if (result.success) {
             console.error('Order placed successfully!', result);
             toast.success('Order placed successfully!');
-            window.location.href = '/account';
+            setOrderSuccess(true);
+            setShowConfirmModal(true);
         } else {
             // Log fetch response status and text for deeper debugging
             console.error('Order failed response:', result);
@@ -223,18 +313,63 @@ const CheckoutPage = () => {
     return (
         <>
             <Header />
+            {showConfirmModal && orderSuccess && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    background: 'rgba(0,0,0,0.35)',
+                    zIndex: 9999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}>
+                    <div style={{
+                        background: '#fff',
+                        borderRadius: '1rem',
+                        boxShadow: '0 4px 24px rgba(44,204,113,0.15)',
+                        padding: '2.5rem 2rem',
+                        minWidth: 320,
+                        textAlign: 'center',
+                        position: 'relative',
+                    }}>
+                        <h2 style={{ fontWeight: 700, fontSize: '1.3rem', marginBottom: '1rem', color: '#229954' }}>Order Placed Successfully!</h2>
+                        <p style={{ marginBottom: '2rem' }}>Your order has been placed. You can view your orders in your account.</p>
+                        <button
+                            style={{ background: '#229954', color: '#fff', fontWeight: 600, fontSize: '1.1rem', padding: '0.8rem 2.2rem', borderRadius: 8, border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px #eee' }}
+                            onClick={() => { window.location.href = '/account/orders'; }}
+                        >
+                            Go to My Orders
+                        </button>
+                        <button
+                            style={{ position: 'absolute', top: 12, right: 18, background: 'none', border: 'none', fontSize: 22, color: '#888', cursor: 'pointer' }}
+                            onClick={() => setShowConfirmModal(false)}
+                            aria-label="Close"
+                        >×</button>
+                    </div>
+                </div>
+            )}
             <div style={{ maxWidth: 900, margin: '0 auto', padding: '2rem' }}>
 
                 {/* Checkout Items Section */}
                 <div style={{ marginBottom: '2rem', background: '#fff', borderRadius: '1.5rem', boxShadow: '0 4px 24px rgba(44,204,113,0.15)', padding: '2.5rem 2rem', border: '2px solid #229954' }}>
                     <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1.5rem', color: 'var(--color-primary)' }}>Checkout Items</h2>
-                    {checkoutItems.length === 0 ? (
+                    {checkoutLoading ? (
+                        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '120px' }}>
+                            <div className="spinner" style={{ width: 48, height: 48, border: '6px solid #eee', borderTop: '6px solid #2ECC71', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                            <style>{`@keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }`}</style>
+                        </div>
+                    ) : checkoutItems.length === 0 ? (
                         <div style={{ color: '#888', textAlign: 'center' }}>No items to checkout.</div>
                     ) : (
                         Object.entries(
                             checkoutItems.reduce((acc, item) => {
-                                if (!acc[item.ShopID]) acc[item.ShopID] = [];
-                                acc[item.ShopID].push(item);
+                                // Defensive: always use string for ShopID
+                                const shopId = String(item.ShopID ?? '');
+                                if (!acc[shopId]) acc[shopId] = [];
+                                acc[shopId].push(item);
                                 return acc;
                             }, {})
                         ).map(([shopId, items]) => (
@@ -601,6 +736,7 @@ const CheckoutPage = () => {
                     </button>
                 </div>
             </div>
+            <FloatingChatButton />
         </>
     );
 };

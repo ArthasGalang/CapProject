@@ -34,12 +34,13 @@ class ReportSeeder extends Seeder
                     'Order' => DB::table('orders')->inRandomOrder()->value('OrderID') ?? 1,
                     default => (string)rand(1, 100),
                 };
+                $status = $faker->randomElement($reportStatuses);
                 DB::table('reports')->insert([
                     'UserID' => $user->UserID,
                     'Reason' => $faker->randomElement($reasons),
-                    'ReportStatus' => $faker->randomElement($reportStatuses),
+                    'ReportStatus' => $status,
                     'ReportDate' => $faker->date(),
-                    'AdminResponse' => $faker->boolean(60) ? $faker->sentence() : '',
+                    'AdminResponse' => ($status === 'Pending' || $status === 'In Review') ? null : ($faker->boolean(60) ? $faker->sentence() : ''),
                     'ReportedLink' => $faker->url(),
                     'TargetType' => $targetType,
                     'TargetID' => (string)$targetID,

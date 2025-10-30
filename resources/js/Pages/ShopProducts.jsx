@@ -17,6 +17,10 @@ const initialForm = {
 };
 
 const ShopProducts = ({ shopId }) => {
+  // Filter states
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterSort, setFilterSort] = useState('newest');
   // Categories state
   const [categories, setCategories] = useState([]);
 
@@ -33,6 +37,7 @@ const ShopProducts = ({ shopId }) => {
     SKU: '',
     CategoryID: '',
     Price: '',
+    Stock: '',
     Description: '',
     Status: 'Active', // 'Active' or 'OffSale'
     Image: [],
@@ -305,13 +310,32 @@ const ShopProducts = ({ shopId }) => {
     pageInfo: { color: '#1b8a44', fontWeight: 700, marginLeft: 8 },
   };
 
-  const totalPages = Math.max(1, Math.ceil(products.length / itemsPerPage));
+  // (moved below after filtering)
+  // Filter and sort products before pagination
+  let filteredProducts = products;
+  if (filterCategory) {
+    filteredProducts = filteredProducts.filter(p => String(p.CategoryID) === String(filterCategory));
+  }
+  if (filterStatus) {
+    filteredProducts = filteredProducts.filter(p => String(p.Status) === String(filterStatus));
+  }
+  // Sort
+  if (filterSort === 'priceLow') {
+    filteredProducts = filteredProducts.slice().sort((a, b) => parseFloat(a.Price) - parseFloat(b.Price));
+  } else if (filterSort === 'priceHigh') {
+    filteredProducts = filteredProducts.slice().sort((a, b) => parseFloat(b.Price) - parseFloat(a.Price));
+  } else if (filterSort === 'name') {
+    filteredProducts = filteredProducts.slice().sort((a, b) => String(a.ProductName).localeCompare(String(b.ProductName)));
+  } else {
+    // newest: sort by ProductID descending (assuming higher ID is newer)
+    filteredProducts = filteredProducts.slice().sort((a, b) => parseInt(b.ProductID) - parseInt(a.ProductID));
+  }
+  const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
   // Ensure currentPage is within bounds when products shrink
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [totalPages]);
-
-  const paginatedProducts = products.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const goPrev = () => setCurrentPage(p => Math.max(1, p - 1));
   const goNext = () => setCurrentPage(p => Math.min(totalPages, p + 1));
@@ -325,6 +349,7 @@ const ShopProducts = ({ shopId }) => {
       SKU: '',
       CategoryID: '',
       Price: '',
+      Stock: '',
       Description: '',
       Status: 'Active',
       Image: [],
@@ -339,6 +364,7 @@ const ShopProducts = ({ shopId }) => {
       SKU: '',
       CategoryID: '',
       Price: '',
+      Stock: '',
       Description: '',
       Status: 'Active',
       Image: [],
@@ -362,8 +388,12 @@ const ShopProducts = ({ shopId }) => {
       alert('No shop selected.');
       return;
     }
-    if (!addForm.ProductName || !addForm.SKU || !addForm.CategoryID || !addForm.Price) {
+    if (!addForm.ProductName || !addForm.SKU || !addForm.CategoryID || !addForm.Price || addForm.Stock === '') {
       alert('Please fill out all required fields.');
+      return;
+    }
+    if (!addForm.Image || addForm.Image.length === 0) {
+      alert('Please add at least one image.');
       return;
     }
     const fd = new FormData();
@@ -474,20 +504,43 @@ const ShopProducts = ({ shopId }) => {
               <div className="shop-products-header" style={styles.headerBar}>
                 <div className="shop-products-filters" style={styles.filtersWrap}>
                   <div style={{ position: 'relative', display: 'inline-block', marginRight: 8 }}>
-                    <select className="shop-products-select" style={{ appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', paddingRight: '2rem' }}>
-                      <option>All Categories</option>
+                    <select
+                      className="shop-products-select"
+                      style={{ appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', paddingRight: '2rem' }}
+                      value={filterCategory}
+                      onChange={e => setFilterCategory(e.target.value)}
+                    >
+                      <option value="">All Categories</option>
+                      {categories.map(cat => (
+                        <option key={cat.CategoryID || cat.id} value={cat.CategoryID || cat.id}>{cat.CategoryName || cat.name}</option>
+                      ))}
                     </select>
                     <span style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '1rem', color: '#888' }}>▼</span>
                   </div>
                   <div style={{ position: 'relative', display: 'inline-block', marginRight: 8 }}>
-                    <select className="shop-products-select" style={{ minWidth: 150, appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', paddingRight: '2rem' }}>
-                      <option>All Status</option>
+                    <select
+                      className="shop-products-select"
+                      style={{ minWidth: 150, appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', paddingRight: '2rem' }}
+                      value={filterStatus}
+                      onChange={e => setFilterStatus(e.target.value)}
+                    >
+                      <option value="">All Status</option>
+                      <option value="Active">Active</option>
+                      <option value="OffSale">OffSale</option>
                     </select>
                     <span style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '1rem', color: '#888' }}>▼</span>
                   </div>
                   <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <select className="shop-products-select" style={{ appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', paddingRight: '2rem' }}>
-                      <option>Sort By: Newest</option>
+                    <select
+                      className="shop-products-select"
+                      style={{ appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', paddingRight: '2rem' }}
+                      value={filterSort}
+                      onChange={e => setFilterSort(e.target.value)}
+                    >
+                      <option value="newest">Sort By: Newest</option>
+                      <option value="priceLow">Price: Low to High</option>
+                      <option value="priceHigh">Price: High to Low</option>
+                      <option value="name">Name</option>
                     </select>
                     <span style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '1rem', color: '#888' }}>▼</span>
                   </div>
@@ -583,6 +636,7 @@ const ShopProducts = ({ shopId }) => {
                     </select>
                   </div>
                   <div style={{fontSize: 15, color: '#666'}}>Price:<br /><input name="Price" value={addForm.Price} onChange={handleAddFormChange} required type="number" min="0" step="0.01" style={{width: '100%', border: '1px solid #ccc', borderRadius: 6, padding: 8, fontSize: 15, marginTop: 2}} /></div>
+                  <div style={{fontSize: 15, color: '#666'}}>Stock:<br /><input name="Stock" value={addForm.Stock} onChange={handleAddFormChange} required type="number" min="0" step="1" style={{width: '100%', border: '1px solid #ccc', borderRadius: 6, padding: 8, fontSize: 15, marginTop: 2}} /></div>
                   <div style={{fontSize: 15, color: '#666'}}>Status:<br />
                     <select name="Status" value={addForm.Status} onChange={handleAddFormChange} style={{width: '100%', border: '1px solid #ccc', borderRadius: 6, padding: 8, fontSize: 15, marginTop: 2}}>
                       <option value="Active">Active</option>
@@ -809,6 +863,13 @@ const ShopProducts = ({ shopId }) => {
                           <input type="number" value={detailsProduct.Price || 0} onChange={(e) => setDetailsProduct(p => ({ ...p, Price: e.target.value }))} style={{width: '100%', border: '1px solid #ccc', borderRadius: 6, padding: 8, fontSize: 15, marginTop: 2}} />
                         ) : (
                           <span style={{fontWeight: 600, color: '#1b5e20'}}>₱{detailsProduct.Price ? parseFloat(detailsProduct.Price).toLocaleString() : '0'}</span>
+                        )}
+                      </div>
+                      <div style={{fontSize: 15, color: '#666'}}>Stock:<br />
+                        {detailsEditMode ? (
+                          <input type="number" value={detailsProduct.Stock || 0} onChange={(e) => setDetailsProduct(p => ({ ...p, Stock: e.target.value }))} style={{width: '100%', border: '1px solid #ccc', borderRadius: 6, padding: 8, fontSize: 15, marginTop: 2}} />
+                        ) : (
+                          <span style={{fontWeight: 600, color: '#222'}}>{detailsProduct.Stock !== undefined && detailsProduct.Stock !== null ? detailsProduct.Stock : (detailsProduct.StockQuantity ?? '-')}</span>
                         )}
                       </div>
                     </div>

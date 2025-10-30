@@ -332,7 +332,6 @@ function Dashboard() {
       <div className="dbCardContainer">
 
 
-
         <div className="dbCard">
           <div className="dbCardIcon">
             <FaUser />
@@ -360,16 +359,6 @@ function Dashboard() {
           <div>
             <div className="dbCardLabel">Open Reports</div>
             <div className="dbCardValue">{openReports}</div>
-          </div>
-        </div>
-
-        <div className="dbCard">
-          <div className="dbCardIcon">
-            <FaEnvelope />
-          </div>
-          <div>
-            <div className="dbCardLabel">Unread Messages</div>
-            <div className="dbCardValue">{unreadMessages}</div>
           </div>
         </div>
       </div>

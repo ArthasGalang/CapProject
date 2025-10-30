@@ -14,7 +14,12 @@ const Account = () => {
   } catch (e) {
     user = null;
   }
-
+  useEffect(() => {
+    if (!user) {
+      window.location.href = '/?showLoginModal=1';
+    }
+  }, [user]);
+  if (!user) return null;
   return (
     <>
       <Header />
@@ -42,13 +47,48 @@ export default Account;
 /* ---------------- AccountDetailsCard component (inline) ---------------- */
 function AccountDetailsCard() {
   const [user, setUser] = useState(null);
+  const [liveStatus, setLiveStatus] = useState('');
+  // Poll for real-time status every 5 seconds
+  useEffect(() => {
+    let interval;
+    if (user && user.UserID) {
+      const fetchStatus = () => {
+        fetch(`/api/user/${user.UserID}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.Status) setLiveStatus(data.Status);
+          });
+      };
+      fetchStatus();
+      interval = setInterval(fetchStatus, 5000);
+    }
+    return () => interval && clearInterval(interval);
+  }, [user]);
+
+  // Set status to Offline when user leaves the site
+  useEffect(() => {
+    const handleUnload = () => {
+      if (user && user.UserID) {
+        fetch(`/api/user/${user.UserID}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ Status: 'Offline' }),
+        });
+      }
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, [user]);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [form, setForm] = useState({
-    FirstName: '', LastName: '', Email: '', ContactNumber: '', HouseNumber: '', Barangay: '', Municipality: '', Zipcode: '', SelectedAddress: '', Active: true, Status: 'Active'
+    FirstName: '', LastName: '', Email: '', ContactNumber: '', HouseNumber: '', Barangay: '', Municipality: '', Zipcode: '', SelectedAddress: '', Status: 'Active', DefaultAddress: null
   });
+  const [defaultAddressValue, setDefaultAddressValue] = useState('');
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const [defaultAddressText, setDefaultAddressText] = useState('Not set');
 
   useEffect(() => {
     try {
@@ -62,17 +102,40 @@ function AccountDetailsCard() {
           setForm(prev => ({...prev, Status: u.Active ? 'Active' : 'Offline'}));
         }
         if (u.Avatar) setAvatarPreview(u.Avatar);
-        // load saved addresses from localStorage
-        const aRaw = localStorage.getItem('addresses');
-        if (aRaw) {
-          try {
-            const arr = JSON.parse(aRaw);
-            if (Array.isArray(arr)) setSavedAddresses(arr);
-          } catch (e) {}
-        } else {
-          // if no addresses array, but user has address components, add one
-          const addr = `${u.HouseNumber || ''}${u.Barangay ? ', ' + u.Barangay : ''}${u.Municipality ? ', ' + u.Municipality : ''}${u.Zipcode ? ', ' + u.Zipcode : ''}`.trim();
-          if (addr) setSavedAddresses([addr]);
+        // Fetch all addresses for this user from addresses table
+        if (u.UserID) {
+          fetch(`/api/user/${u.UserID}/addresses`)
+            .then(res => res.json())
+            .then(arr => {
+              if (Array.isArray(arr)) {
+                setSavedAddresses(arr.map(a => ({
+                  id: a.AddressID,
+                  text: [a.HouseNumber, a.Street, a.Barangay, a.Municipality, a.ZipCode].filter(Boolean).join(', ')
+                })));
+              }
+            })
+            .catch(() => setSavedAddresses([]));
+        }
+        // Fetch default address from addresses table using AddressID
+        if (u.DefaultAddress) {
+          fetch(`/api/addresses/${u.DefaultAddress}`)
+            .then(res => res.json())
+            .then(addr => {
+              if (addr && !addr.error) {
+                const parts = [addr.HouseNumber, addr.Street, addr.Barangay, addr.Municipality, addr.ZipCode].filter(Boolean);
+                const addressText = parts.join(', ');
+                setDefaultAddressText(addressText);
+                setDefaultAddressValue(addressText);
+                setForm(prev => ({...prev, SelectedAddress: addressText}));
+              } else {
+                setDefaultAddressText('Not set');
+                setDefaultAddressValue('');
+              }
+            })
+            .catch(() => {
+              setDefaultAddressText('Not set');
+              setDefaultAddressValue('');
+            });
         }
       }
     } catch (e) {}
@@ -91,12 +154,41 @@ function AccountDetailsCard() {
     reader.readAsDataURL(file);
   }
 
-  const save = () => {
+  const save = async () => {
     try {
-      localStorage.setItem('user', JSON.stringify(form));
-      alert('Saved to localStorage');
+      // Only send editable fields
+      const payload = {
+        FirstName: form.FirstName,
+        LastName: form.LastName,
+        ContactNumber: form.ContactNumber,
+        Status: form.Status,
+        SelectedAddress: form.SelectedAddress,
+      };
+      // Optionally update DefaultAddress if SelectedAddress matches one of the saved addresses
+      const selected = savedAddresses.find(a => a.text === form.SelectedAddress);
+      if (selected) {
+        payload.DefaultAddress = selected.id;
+      }
+      const userId = user && (user.UserID || user.id);
+      const res = await fetch(`/api/user/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const updatedUser = await res.json();
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+        setForm(prev => ({...prev, ...updatedUser}));
+        setShowForm(false);
+        setShowConfirmModal(true);
+      } else {
+        setShowForm(false);
+        setShowConfirmModal(true);
+      }
     } catch (e) {
-      alert('Save failed');
+      setShowForm(false);
+      setShowConfirmModal(true);
     }
   }
 
@@ -107,19 +199,8 @@ function AccountDetailsCard() {
       else setForm({FirstName:'',LastName:'',Email:'',ContactNumber:'',HouseNumber:'',Barangay:'',Municipality:'',Zipcode:'',Active:true,DefaultAddress:false});
     } catch (e) {}
   }
-  const getDefaultAddressText = () => {
-    if (form.SelectedAddress) return form.SelectedAddress;
-    const parts = [];
-    if (form.HouseNumber) parts.push(form.HouseNumber);
-    if (form.Barangay) parts.push(form.Barangay);
-    if (form.Municipality) parts.push(form.Municipality);
-    if (form.Zipcode) parts.push(form.Zipcode);
-    return parts.length ? parts.join(', ') : 'Not set';
-  }
-
   // When form is hidden, show the formatted info with avatar and label/value table
   if (!showForm) {
-    const defaultAddressText = getDefaultAddressText();
     return (
       <div style={{display:'flex', justifyContent:'center', marginTop:24, marginBottom:24}}>
         <div style={{width:560}}>
@@ -135,20 +216,30 @@ function AccountDetailsCard() {
                   >
                     {avatarPreview ? <img src={avatarPreview} alt="avatar" style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <User size={48} color={'var(--color-primary)'} />}
                   </div>
-                  <div style={{position:'absolute', right:6, bottom:6, width:14, height:14, borderRadius:999, border:'2px solid #fff', background: form.Status === 'Active' ? '#2ecc71' : form.Status === 'Busy' ? '#f3c623' : '#9aa0a6'}} />
+                  <div style={{position:'absolute', right:6, bottom:6, width:14, height:14, borderRadius:999, border:'2px solid #fff', background: liveStatus === 'Active' ? '#2ecc71' : liveStatus === 'Busy' ? '#f3c623' : '#9aa0a6'}} />
 
                   {statusMenuOpen && (
                     <div style={{position:'absolute', top:100, right:0, background:'#fff', border:'1px solid #e6e6e6', borderRadius:8, boxShadow:'0 6px 18px rgba(0,0,0,0.08)', padding:8, zIndex:40}}>
                       {['Active','Busy','Offline'].map(s => (
-                        <div key={s} onClick={() => {
+                        <div key={s} onClick={async () => {
                           setStatusMenuOpen(false);
                           const status = s;
                           setForm(prev => {
-                            const updated = {...prev, Status: status, Active: status === 'Active'};
+                            const updated = {...prev, Status: status};
                             try { localStorage.setItem('user', JSON.stringify(updated)); } catch (err) {}
                             setUser && typeof setUser === 'function' && setUser(updated);
                             return updated;
                           });
+                          // Real-time update to backend
+                          const userId = user && (user.UserID || user.id);
+                          try {
+                            await fetch(`/api/user/${userId}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ Status: status }),
+                            });
+                            setLiveStatus(status);
+                          } catch (e) {}
                         }} style={{padding:'8px 12px', cursor:'pointer', borderRadius:6, display:'flex', alignItems:'center', gap:8}}>
                           <span style={{width:10, height:10, borderRadius:999, background: s === 'Active' ? '#2ecc71' : s === 'Busy' ? '#f3c623' : '#9aa0a6'}} />
                           <span style={{fontSize:13}}>{s}</span>
@@ -167,6 +258,7 @@ function AccountDetailsCard() {
                     <div style={{color:'#222', fontSize:14}}>Email:</div>
                     <div style={{color:'#222', fontSize:14}}>Contact Number:</div>
                     <div style={{color:'#222', fontSize:14}}>Default Address:</div>
+                    <div style={{color:'#222', fontSize:14}}>Status:</div>
                   </div>
 
                   <div style={{width:1, background:'#e6e6e6', marginRight:12}} />
@@ -176,6 +268,7 @@ function AccountDetailsCard() {
                     <div style={{color:'#666'}}>{form.Email || '—'}</div>
                     <div style={{color:'#666'}}>{form.ContactNumber || '—'}</div>
                     <div style={{fontWeight:700}}>{defaultAddressText}</div>
+                    <div style={{color:'#666', fontWeight:600}}>{liveStatus || '—'}</div>
                   </div>
                 </div>
               </div>
@@ -219,7 +312,7 @@ function AccountDetailsCard() {
 
           <div style={{marginTop:12}}>
             <label style={{display:'block', fontSize:13, color:'#444', marginBottom:6}}>Email</label>
-            <input value={form.Email} onChange={e => update('Email', e.target.value)} style={{width:'100%', padding:10, borderRadius:8, border:'1px solid #e6e6e6'}} />
+            <input value={form.Email} readOnly style={{width:'100%', padding:10, borderRadius:8, border:'1px solid #e6e6e6', background:'#f5f5f5', color:'#888'}} />
           </div>
 
           <div style={{marginTop:12}}>
@@ -231,19 +324,27 @@ function AccountDetailsCard() {
 
           <div style={{marginTop:12}}>
             <label style={{display:'block', fontSize:13, color:'#444', marginBottom:6}}>Select saved address</label>
-            <select value={form.SelectedAddress} onChange={e => update('SelectedAddress', e.target.value)} style={{width:'100%', padding:10, borderRadius:8, border:'1px solid #e6e6e6'}}>
-              <option value="">-- Select address --</option>
-              {savedAddresses.map((a, i) => (
-                <option key={i} value={a}>{a}</option>
+            <select value={form.SelectedAddress || defaultAddressValue} onChange={e => update('SelectedAddress', e.target.value)} style={{width:'100%', padding:10, borderRadius:8, border:'1px solid #e6e6e6'}}>
+              {!defaultAddressValue && <option value="">-- Select address --</option>}
+              {savedAddresses.map(a => (
+                <option key={a.id} value={a.text}>{a.text}</option>
               ))}
             </select>
           </div>
 
           <div style={{marginTop:18, display:'flex', gap:10, justifyContent:'center'}}>
             <button onClick={save} style={{background:'var(--color-primary)', color:'#fff', padding:'10px 14px', borderRadius:8, border:'none', fontWeight:700}}>Save</button>
-            <button onClick={reset} style={{background:'#fff', color:'#444', padding:'10px 14px', borderRadius:8, border:'1px solid #e6e6e6'}}>Reset</button>
             <button onClick={() => setShowForm(false)} style={{background:'#fff', color:'#666', padding:'10px 14px', borderRadius:8, border:'1px solid #eee'}}>Cancel</button>
           </div>
+  {showConfirmModal && (
+    <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(30,34,45,0.45)',zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{background:'#fff',borderRadius:16,padding:'2.2rem 2.5rem',boxShadow:'0 8px 32px rgba(44,204,113,0.15)',minWidth:320,maxWidth:'90vw',textAlign:'center'}}>
+        <h2 style={{color:'var(--color-primary)',fontWeight:700,fontSize:'1.5rem',marginBottom:12}}>Details Updated</h2>
+        <div style={{color:'#444',fontSize:'1.08rem',marginBottom:18}}>Your account details have been updated successfully.</div>
+        <button style={{background:'var(--color-primary)',color:'#fff',padding:'10px 24px',borderRadius:8,border:'none',fontWeight:700,fontSize:'1.08rem'}} onClick={()=>setShowConfirmModal(false)}>OK</button>
+      </div>
+    </div>
+  )}
         </div>
       </div>
     </div>

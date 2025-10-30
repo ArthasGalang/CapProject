@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('Reason');
             $table->enum('ReportStatus', ['Pending', 'In Review', 'Resolved', 'Rejected']);
             $table->date('ReportDate');
-            $table->string('AdminResponse');
-            $table->string('ReportedLink');
+            $table->string('AdminResponse')->nullable();
+            $table->string('ReportedLink')->nullable();
             $table->enum('TargetType', ['User', 'Shop', 'Product', 'Order', 'Other']);
             $table->string('TargetID');
             $table->text('Content');

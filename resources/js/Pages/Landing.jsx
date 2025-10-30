@@ -43,6 +43,15 @@ const Landing = () => {
     const [modalTab, setModalTab] = useState('login'); // 'login' or 'register'
     const [hoveredIdx, setHoveredIdx] = useState(null);
     const [productsByCategory, setProductsByCategory] = useState({});
+
+    // Open login modal if redirected after email verification
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('showLoginModal') === '1') {
+            setShowModal(true);
+            setModalTab('login');
+        }
+    }, []);
     // Toast state for notifications
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
@@ -256,7 +265,7 @@ const Landing = () => {
                     })}
                 </div>
                 <div className="viewMoreWrapper">
-                    <button className="viewMoreBtn" onClick={() => window.location.href = '/browse'}>View more</button>
+                    <button className="viewMoreBtn" onClick={() => window.location.href = `/browse?category=${encodeURIComponent(activeCategory.name)}`}>View more</button>
                 </div>
             </section>
             

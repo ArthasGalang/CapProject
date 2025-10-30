@@ -1,6 +1,7 @@
 import React from "react";
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
+import FloatingChatButton from "@/Components/FloatingChatButton";
 
 const About = () => (
   <>
@@ -15,6 +16,7 @@ const About = () => (
         </div>
       </div>
     </main>
+    <FloatingChatButton />
     <Footer />
   </>
 );

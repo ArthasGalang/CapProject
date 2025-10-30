@@ -1,15 +1,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import ReportProductButton from './ReportProductButton';
 
 const FloatingChatButton = () => {
-  // Check if user is logged in
-  let isLoggedIn = false;
-  try {
-    isLoggedIn = !!localStorage.getItem('user');
-  } catch (e) {
-    isLoggedIn = false;
-  }
-  if (!isLoggedIn) return null;
+  // Modal state for starting new chat
+  const [showUserIdModal, setShowUserIdModal] = useState(false);
+  const [newUserIdInput, setNewUserIdInput] = useState('');
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -20,6 +16,14 @@ const FloatingChatButton = () => {
   const [activeChat, setActiveChat] = useState(null);
   const [chatUsers, setChatUsers] = useState({});
   const messagesEndRef = useRef(null);
+
+  // Check if user is logged in
+  let isLoggedIn = false;
+  try {
+    isLoggedIn = !!localStorage.getItem('user');
+  } catch (e) {
+    isLoggedIn = false;
+  }
 
   useEffect(() => {
     if (open && messagesEndRef.current) {
@@ -50,7 +54,15 @@ const FloatingChatButton = () => {
           chatMap[otherId].messages.push(msg);
           userIds.add(otherId);
         });
-        setChats(Object.values(chatMap));
+        // Sort chats by most recent message timestamp
+        const sortedChats = Object.values(chatMap).sort((a, b) => {
+          const lastMessageA = a.messages[a.messages.length - 1];
+          const lastMessageB = b.messages[b.messages.length - 1];
+          const timeA = lastMessageA?.created_at ? new Date(lastMessageA.created_at).getTime() : 0;
+          const timeB = lastMessageB?.created_at ? new Date(lastMessageB.created_at).getTime() : 0;
+          return timeB - timeA; // Most recent first
+        });
+        setChats(sortedChats);
         // Fetch user info for each chat
         const userInfoMap = {};
         await Promise.all(Array.from(userIds).map(async id => {
@@ -118,33 +130,50 @@ const FloatingChatButton = () => {
     // Listen for new messages in real time
     if (window.Echo) {
       window.Echo.channel(`chat.${userId}`)
-        .listen('UserMessageSent', (e) => {
+        .listen('UserMessageSent', async (e) => {
           console.log('Received UserMessageSent event:', e);
-          // Always update chat list with new message
+          const senderId = e.message.SenderID;
+          const receiverId = e.message.ReceiverID;
+          const otherId = senderId === userId ? receiverId : senderId;
+          let chatExists = false;
           setChats(prevChats => {
-            const senderId = e.message.SenderID;
-            const receiverId = e.message.ReceiverID;
-            const otherId = senderId === userId ? receiverId : senderId;
-            let found = false;
-            const updatedChats = prevChats.map(chat => {
-              if (chat.otherId === otherId) {
-                found = true;
-                return {
-                  ...chat,
-                  messages: [...chat.messages, e.message]
-                };
-              }
-              return chat;
-            });
-            // If chat doesn't exist, add it
-            if (!found) {
+            chatExists = prevChats.some(chat => chat.otherId === otherId);
+            if (chatExists) {
+              // Update existing chat and move to top
+              const updatedChats = prevChats.map(chat => {
+                if (chat.otherId === otherId) {
+                  return {
+                    ...chat,
+                    messages: [...chat.messages, e.message]
+                  };
+                }
+                return chat;
+              });
+              // Sort by most recent message
+              return updatedChats.sort((a, b) => {
+                const lastMessageA = a.messages[a.messages.length - 1];
+                const lastMessageB = b.messages[b.messages.length - 1];
+                const timeA = lastMessageA?.created_at ? new Date(lastMessageA.created_at).getTime() : 0;
+                const timeB = lastMessageB?.created_at ? new Date(lastMessageB.created_at).getTime() : 0;
+                return timeB - timeA;
+              });
+            } else {
               return [
                 { otherId, messages: [e.message] },
                 ...prevChats
               ];
             }
-            return updatedChats;
           });
+          // If chat did not exist, fetch user info and add to chatUsers
+          if (!chatExists) {
+            try {
+              const res = await fetch(`/api/user/${otherId}`);
+              if (res.ok) {
+                const user = await res.json();
+                setChatUsers(prev => ({ ...prev, [otherId]: user }));
+              }
+            } catch {}
+          }
           // Only add messages for the active chat
           if (
             (e.message.SenderID === userId && e.message.ReceiverID === activeChat) ||
@@ -187,12 +216,14 @@ const FloatingChatButton = () => {
     setInput('');
   };
 
+  // If user is not logged in, don't render the component
+  if (!isLoggedIn) return null;
+
   return (
     <>
       <button
         onClick={() => {
           setOpen(true);
-          // Auto-select Announcements if no chat is selected
           if (!activeChat) {
             setShowAnnouncements(true);
           }
@@ -217,11 +248,108 @@ const FloatingChatButton = () => {
         }}
         aria-label="Open chat"
       >
-        {/* Simple chat icon (SVG) */}
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </button>
+
+      {/* Modal for entering UserID to start new chat */}
+      {showUserIdModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(0,0,0,0.25)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 16,
+            boxShadow: '0 4px 24px #2222',
+            padding: '2rem 2.5rem',
+            minWidth: 320,
+            textAlign: 'center',
+            position: 'relative',
+          }}>
+            <h2 style={{ fontWeight: 700, fontSize: '1.15rem', marginBottom: '1rem', color: 'var(--color-primary)' }}>Start New Chat</h2>
+            <div style={{ marginBottom: '1.2rem' }}>
+              <input
+                type="number"
+                value={newUserIdInput}
+                onChange={e => setNewUserIdInput(e.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="Enter UserID"
+                style={{ padding: '0.7rem', borderRadius: 8, border: '1px solid #ccc', width: '100%', fontSize: 16 }}
+                autoFocus
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+              <button
+                style={{ background: 'var(--color-primary)', color: '#fff', fontWeight: 600, fontSize: 16, padding: '0.6rem 2rem', borderRadius: 8, border: 'none', cursor: 'pointer' }}
+                onClick={async () => {
+                  let userId = null;
+                  try {
+                    const userData = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+                    userId = userData && (userData.UserID || userData.id);
+                  } catch (e) { userId = null; }
+                  const receiverId = newUserIdInput;
+                  if (!receiverId || isNaN(receiverId)) return;
+                  if (Number(receiverId) === Number(userId)) {
+                    window.alert('You cannot start a chat with yourself.');
+                    return;
+                  }
+                  // Check if chat already exists
+                  const exists = chats.some(chat => Number(chat.otherId) === Number(receiverId));
+                  if (exists) {
+                    setActiveChat(Number(receiverId));
+                    setShowAnnouncements(false);
+                    setShowUserIdModal(false);
+                    setNewUserIdInput('');
+                    return;
+                  }
+                  // Fetch user info for the entered ID
+                  let userInfo = null;
+                  try {
+                    const res = await fetch(`/api/user/${receiverId}`);
+                    if (res.ok) userInfo = await res.json();
+                  } catch {}
+                  // Add to chatUsers and chats temporarily
+                  if (userInfo) {
+                    setChatUsers(prev => ({ ...prev, [receiverId]: userInfo }));
+                  }
+                  setChats(prev => [
+                    { otherId: Number(receiverId), messages: [] },
+                    ...prev
+                  ]);
+                  setActiveChat(Number(receiverId));
+                  setShowAnnouncements(false);
+                  setShowUserIdModal(false);
+                  setNewUserIdInput('');
+                }}
+              >Start Chat</button>
+              <button
+                style={{ background: '#eee', color: '#222', fontWeight: 600, fontSize: 16, padding: '0.6rem 2rem', borderRadius: 8, border: 'none', cursor: 'pointer' }}
+                onClick={() => {
+                  setShowUserIdModal(false);
+                  setNewUserIdInput('');
+                }}
+              >Cancel</button>
+            </div>
+            <button
+              style={{ position: 'absolute', top: 12, right: 18, background: 'none', border: 'none', fontSize: 22, color: '#888', cursor: 'pointer' }}
+              onClick={() => {
+                setShowUserIdModal(false);
+                setNewUserIdInput('');
+              }}
+              aria-label="Close"
+            >×</button>
+          </div>
+        </div>
+      )}
 
       {open && (
         <div style={{
@@ -231,7 +359,7 @@ const FloatingChatButton = () => {
           width: 640,
           height: 600,
           background: '#fff',
-          borderRadius: 28,
+          borderRadius: 12,
           boxShadow: '0 16px 64px rgba(0,0,0,0.25)',
           zIndex: 1100,
           display: 'flex',
@@ -265,42 +393,7 @@ const FloatingChatButton = () => {
                 <button
                   title="Start new chat"
                   style={{marginLeft:8, background:'var(--color-primary)', color:'#fff', border:'none', borderRadius:6, width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, cursor:'pointer'}}
-                  onClick={async () => {
-                    let userId = null;
-                    try {
-                      const userData = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
-                      userId = userData && (userData.UserID || userData.id);
-                    } catch (e) { userId = null; }
-                    const receiverId = window.prompt('Enter UserID to start chat with:');
-                    if (!receiverId || isNaN(receiverId)) return;
-                    if (Number(receiverId) === Number(userId)) {
-                      window.alert('You cannot start a chat with yourself.');
-                      return;
-                    }
-                    // Check if chat already exists
-                    const exists = chats.some(chat => Number(chat.otherId) === Number(receiverId));
-                    if (exists) {
-                      setActiveChat(Number(receiverId));
-                      setShowAnnouncements(false);
-                      return;
-                    }
-                    // Fetch user info for the entered ID
-                    let userInfo = null;
-                    try {
-                      const res = await fetch(`/api/user/${receiverId}`);
-                      if (res.ok) userInfo = await res.json();
-                    } catch {}
-                    // Add to chatUsers and chats temporarily
-                    if (userInfo) {
-                      setChatUsers(prev => ({ ...prev, [receiverId]: userInfo }));
-                    }
-                    setChats(prev => [
-                      { otherId: Number(receiverId), messages: [] },
-                      ...prev
-                    ]);
-                    setActiveChat(Number(receiverId));
-                    setShowAnnouncements(false);
-                  }}
+                  onClick={() => setShowUserIdModal(true)}
                 >
                   +
                 </button>
@@ -332,7 +425,15 @@ const FloatingChatButton = () => {
                 width: '90%',
                 alignSelf: 'center',
               }} />
-              <ul style={{listStyle:'none', margin:0, padding:0}}>
+              <ul style={{
+                listStyle:'none',
+                margin:0,
+                padding:0,
+                maxHeight:320,
+                overflowY:'auto',
+                scrollbarWidth:'thin',
+                scrollbarColor:'#ccc #f3f3f3'
+              }}>
                 {chats.length === 0 ? (
                   <li style={{padding:'8px 0', color:'#888', textAlign:'center'}}>No chats found.</li>
                 ) : (
@@ -351,6 +452,7 @@ const FloatingChatButton = () => {
                     return (
                       <li
                         key={chat.otherId}
+                        title={`UserID: ${chat.otherId}`}
                         style={{
                           padding:'10px 0',
                           color: (!showAnnouncements && activeChat === chat.otherId) ? 'var(--color-primary)' : '#555',
@@ -496,7 +598,12 @@ const FloatingChatButton = () => {
               </div>
               {/* Input: only show if not announcements */}
               {!showAnnouncements && (
-                <form onSubmit={e => {e.preventDefault(); sendMessage();}} style={{display:'flex', padding:'0.8rem', borderTop:'1px solid #eee', background:'#fff'}}>
+                <form onSubmit={e => {e.preventDefault(); sendMessage();}} style={{display:'flex', padding:'0.8rem', borderTop:'1px solid #eee', background:'#fff', position: 'relative'}}>
+                  {activeChat && (
+                    <div style={{ position: 'absolute', top: '-50px', right: '10px' }}>
+                      <ReportProductButton productId={activeChat} />
+                    </div>
+                  )}
                   <input
                     type="text"
                     value={input}

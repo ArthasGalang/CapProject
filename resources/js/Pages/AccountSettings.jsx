@@ -4,6 +4,18 @@ import AccountSidebar from "../Components/AccountSidebar";
 import FloatingChatButton from "../Components/FloatingChatButton";
 
 const AccountSettings = () => {
+  let user = null;
+  try {
+    user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+  } catch (e) {
+    user = null;
+  }
+  React.useEffect(() => {
+    if (!user) {
+      window.location.href = '/?showLoginModal=1';
+    }
+  }, [user]);
+  if (!user) return null;
   return (
     <>
       <Header />

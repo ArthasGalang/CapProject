@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Header from "../Components/Header";
 import Footer from "../Components/Footer";
 import AccountSidebar from "../Components/AccountSidebar";
 import FloatingChatButton from "../Components/FloatingChatButton";
+import ReportProductButton from "@/Components/ReportProductButton";
 
 const orderTabs = [
-  { status: 'ToPay', color: '#22c55e', label: 'To Pay' },
+  { status: 'To Pay', color: '#22c55e', label: 'To Pay' },
   { status: 'Preparing', color: '#f59e42', label: 'Preparing' },
   { status: 'Delivering', color: '#3b82f6', label: 'For Pickup/Deliver' },
   { status: 'Completed', color: '#6366f1', label: 'Completed' },
@@ -14,20 +15,41 @@ const orderTabs = [
 
 const AccountOrders = () => {
   const [activeTab, setActiveTab] = useState(0);
-
   const [orderDetails, setOrderDetails] = useState([]);
+  const [shopOwners, setShopOwners] = useState({});
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelOrderId, setCancelOrderId] = useState(null);
+  let userId = null;
 
-  React.useEffect(() => {
-    // Get userId from localStorage (same logic as Header)
-    let userId = null;
+  const handleCancelOrder = async (orderId) => {
     try {
-      const userData = localStorage.getItem('authToken') ? JSON.parse(localStorage.getItem('user')) : null;
-      userId = userData && (userData.UserID || userData.id);
-    } catch (e) {
-      userId = null;
+      const res = await fetch(`/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Cancelled' })
+      });
+      const result = await res.json();
+      if (result.success) {
+        setShowCancelModal(false);
+        setCancelOrderId(null);
+        // Optionally refresh orders
+        setOrderDetails(details => details.map(o => o.OrderID === orderId ? { ...o, Status: 'Cancelled' } : o));
+      } else {
+        alert('Failed to cancel order.');
+      }
+    } catch (err) {
+      alert('Network error.');
     }
+  };
+  try {
+    const userData = localStorage.getItem('authToken') ? JSON.parse(localStorage.getItem('user')) : null;
+    userId = userData && (userData.UserID || userData.id);
+  } catch (e) {
+    userId = null;
+  }
+  useEffect(() => {
     if (!userId) {
-      console.warn('No userId found in localStorage.');
+      window.location.href = '/?showLoginModal=1';
       return;
     }
     // Fetch all order details from the MySQL view
@@ -37,6 +59,19 @@ const AccountOrders = () => {
         if (Array.isArray(data.order_details)) {
           setOrderDetails(data.order_details);
           console.log('Order details from view:', data.order_details);
+          
+          // Extract unique shop IDs and fetch shop owner information
+          const uniqueShopIds = [...new Set(data.order_details.map(o => o.ShopID))];
+          uniqueShopIds.forEach(shopId => {
+            fetch(`/api/shops/${shopId}`)
+              .then(res => res.json())
+              .then(shop => {
+                if (shop && shop.UserID) {
+                  setShopOwners(prev => ({ ...prev, [shopId]: shop.UserID }));
+                }
+              })
+              .catch(err => console.error('Error fetching shop owner:', err));
+          });
         } else {
           setOrderDetails([]);
         }
@@ -45,7 +80,8 @@ const AccountOrders = () => {
         setOrderDetails([]);
         console.error("Error fetching order details:", err);
       });
-  }, []);
+  }, [userId]);
+  if (!userId) return null;
 
   return (
     <>
@@ -97,17 +133,25 @@ const AccountOrders = () => {
                   if (shopIds.length === 0) return <div style={{color:'#888', padding:'2rem 0'}}>No orders for this status.</div>;
                   return shopIds.map(shopId => {
                     const shop = shops[shopId];
+                    const ownerUserId = shopOwners[shopId];
                     return (
                       <div key={shopId} style={{marginBottom: '1.5rem', background: '#fff', borderRadius: 10, boxShadow: '0 1px 6px rgba(0,0,0,0.04)', padding: '1.1rem 1rem'}}>
-                        <div style={{fontWeight: 600, color: card.color, marginBottom: 8, fontSize: '1.08rem'}}>Shop: {shop.shopName || shopId}</div>
+                        <div style={{fontWeight: 600, color: card.color, marginBottom: 8, fontSize: '1.08rem', display: 'flex', alignItems: 'center', gap: 12}}>
+                          <span>Shop: {shop.shopName || shopId}</span>
+                          {ownerUserId && <span style={{fontSize: '0.95rem', color: '#888', fontWeight: 500}}>(Owner ID: {ownerUserId})</span>}
+                        </div>
                         {/* Group by OrderID within shop */}
                         {[...new Set(shop.items.map(i => i.OrderID))].map(orderId => {
                           const orderItems = shop.items.filter(i => i.OrderID === orderId);
                           const orderDate = orderItems[0]?.OrderDate;
                           const total = orderItems.reduce((sum, i) => sum + (parseFloat(i.Subtotal) || 0), 0);
                           return (
-                            <div key={orderId} style={{marginBottom: '1.1rem', borderBottom: '1px solid #eee', paddingBottom: 8}}>
-                              <div style={{fontWeight: 500, color: '#555', marginBottom: 4}}>Order #{orderId} <span style={{marginLeft: 12, color: '#888', fontWeight: 400}}>Date: {orderDate}</span></div>
+                            <div key={orderId} style={{marginBottom: '1.1rem', borderBottom: '1px solid #eee', paddingBottom: 8, position: 'relative'}}>
+                              <div style={{display:'flex', alignItems:'center', gap:10, fontWeight: 500, color: '#555', marginBottom: 4}}>
+                                <span style={{marginRight: 8}}><ReportProductButton productId={orderId} /></span>
+                                <span>Order #{orderId}</span>
+                                <span style={{marginLeft: 12, color: '#888', fontWeight: 400}}>Date: {orderDate}</span>
+                              </div>
                               <div style={{width: '100%', marginBottom: 0}}>
                                 <div style={{display: 'flex', fontWeight: 600, color: '#888', fontSize: '0.98rem', marginBottom: 6, paddingLeft: 4}}>
                                   <div style={{width: 56}}></div>
@@ -148,7 +192,59 @@ const AccountOrders = () => {
                                   <span style={{fontWeight: 500, color: '#888'}}>Note to seller:</span> {orderItems[0].BuyerNote}
                                 </div>
                               )}
-                              <div style={{marginTop: 6, textAlign: 'right', fontWeight: 600, color: card.color}}>Total: ₱{total.toLocaleString(undefined, {minimumFractionDigits:2})}</div>
+                              <div style={{marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                                <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
+                                  {card.status === 'To Pay' && (
+                                    <>
+                                      <button
+                                        style={{background:'#ef4444', color:'#fff', fontWeight:600, fontSize:'1rem', padding:'0.5rem 1.3rem', borderRadius:6, border:'none', cursor:'pointer'}}
+                                        onClick={() => { setShowCancelModal(true); setCancelOrderId(orderId); }}
+                                      >
+                                        Cancel Order
+                                      </button>
+                                      {orderItems[0]?.PaymentMethod && orderItems[0].PaymentMethod.toLowerCase().trim() === 'ewallet' && (
+                                        <button
+                                          style={{background:'#1976d2', color:'#fff', fontWeight:600, fontSize:'1rem', padding:'0.5rem 1.3rem', borderRadius:6, border:'none', cursor:'pointer'}}
+                                          onClick={() => alert('Show QR payment modal for order ' + orderId)}
+                                        >
+                                          Pay with QR
+                                        </button>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                                <div style={{fontWeight: 600, color: card.color, fontSize: '1.08rem'}}>Total: ₱{total.toLocaleString(undefined, {minimumFractionDigits:2})}</div>
+                              </div>
+      {/* Cancel confirmation modal */}
+      {showCancelModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.35)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{background:'#fff', borderRadius:'1rem', boxShadow:'0 4px 24px rgba(44,204,113,0.15)', padding:'2.5rem 2rem', minWidth:320, textAlign:'center', position:'relative'}}>
+            <h2 style={{fontWeight:700, fontSize:'1.2rem', marginBottom:'1rem', color:'#ef4444'}}>Cancel Order?</h2>
+            <p style={{marginBottom:'2rem'}}>Are you sure you want to cancel this order?</p>
+            <button
+              style={{background:'#ef4444', color:'#fff', fontWeight:600, fontSize:'1.1rem', padding:'0.7rem 2rem', borderRadius:8, border:'none', cursor:'pointer', marginRight:12}}
+              onClick={() => handleCancelOrder(cancelOrderId)}
+            >
+              Yes, Cancel
+            </button>
+            <button
+              style={{background:'#eee', color:'#555', fontWeight:600, fontSize:'1.1rem', padding:'0.7rem 2rem', borderRadius:8, border:'none', cursor:'pointer'}}
+              onClick={() => { setShowCancelModal(false); setCancelOrderId(null); }}
+            >
+              No, Go Back
+            </button>
+            <button
+              style={{position:'absolute', top:12, right:18, background:'none', border:'none', fontSize:22, color:'#888', cursor:'pointer'}}
+              onClick={() => { setShowCancelModal(false); setCancelOrderId(null); }}
+              aria-label="Close"
+            >×</button>
+          </div>
+        </div>
+      )}
+                              {/* Report button removed from bottom, now at top */}
                             </div>
                           );
                         })}

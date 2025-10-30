@@ -1,8 +1,9 @@
 import React, { useState } from "react";
+import ReportProductButton from "@/Components/ReportProductButton";
 import { usePage, router } from '@inertiajs/react';
 import Header from "@/Components/Header";
 import Footer from "@/Components/Footer";
-
+import FloatingChatButton from "@/Components/FloatingChatButton";
 import Toast from "@/Components/Toast";
 
 const ProductDetails = () => {
@@ -11,6 +12,7 @@ const ProductDetails = () => {
   const [addToCartHover, setAddToCartHover] = React.useState(false);
   const [visitShopHover, setVisitShopHover] = React.useState(false);
   const [chatNowHover, setChatNowHover] = React.useState(false);
+
 
   const { ProductID } = usePage().props;
   const [product, setProduct] = useState(null);
@@ -38,6 +40,8 @@ const ProductDetails = () => {
           }
         }
         setProduct(data);
+        // Set TargetID for report form
+        setReportForm(f => ({ ...f, TargetID: data?.ProductID || ProductID }));
       });
 
     // Fetch the reviews_with_replies view for this product and log the result
@@ -216,22 +220,26 @@ const ProductDetails = () => {
       userId = user?.UserID || user?.id || null;
     } catch (e) { userId = null; }
     if (!product) return;
+    // Defensive: get ShopID, ProductName, Image from product object
     const tempCartItem = {
       CartItemID: `temp-${ProductID}-${Date.now()}`,
       ProductID,
       Quantity: quantity,
-      Price: product.price,
-      Subtotal: product.price * quantity,
-      ShopID: product.ShopID ?? product.shopId,
-      ProductName: product.title,
-      Image: product.image,
+      Price: Number(product.price),
+      Subtotal: Number(product.price) * quantity,
+      ShopID: product.ShopID ?? product.shopId ?? product.shopID,
+      ProductName: product.ProductName ?? product.title ?? product.name,
+      Image: (Array.isArray(product.images) && product.images.length > 0) ? product.images[0] : (product.image ?? product.Image ?? ''),
       // Add other fields as needed
     };
+    // Store tempCartItem in localStorage for checkout page to read
+    try {
+      localStorage.setItem('checkoutItems', JSON.stringify([tempCartItem]));
+    } catch (e) {}
     router.visit('/checkout', {
       data: {
         userId,
         selectedCartItemIds: [tempCartItem.CartItemID],
-        tempCartItems: [tempCartItem],
         total: tempCartItem.Subtotal
       }
     });
@@ -242,7 +250,9 @@ const ProductDetails = () => {
       <Header />
       <main style={{ background: '#f7f8fa', minHeight: '70vh', padding: '2rem 0' }}>
         {/* Main Product Card */}
-        <div style={{ maxWidth: 1100, margin: '0 auto', background: '#fff', borderRadius: '1.2rem', boxShadow: '0 2px 16px rgba(44,204,113,0.07)', padding: '2.5rem 2rem', display: 'flex', gap: '2.5rem', flexWrap: 'wrap' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', background: '#fff', borderRadius: '1.2rem', boxShadow: '0 2px 16px rgba(44,204,113,0.07)', padding: '2.5rem 2rem', display: 'flex', gap: '2.5rem', flexWrap: 'wrap', position: 'relative' }}>
+          {/* Small red encircled ! icon as component */}
+          <ReportProductButton productId={product?.ProductID || ProductID} />
           {/* Left: Image Carousel */}
           <div style={{ flex: '1 1 340px', minWidth: 320, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <div style={{ background: '#eaeaea', borderRadius: '1rem', padding: 0, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 320, height: 400, maxWidth: 400, border: '2px solid #2ecc71', width: 400 }}>
@@ -438,6 +448,7 @@ const ProductDetails = () => {
           )}
         </div>
       </main>
+      <FloatingChatButton />
       <Footer />
     </>
   );

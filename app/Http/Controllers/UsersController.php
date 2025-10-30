@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Users;
+use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 
 class UsersController extends Controller
 {
     public function index()
     {
-        return response()->json(Users::all());
+        return response()->json(User::all());
     }
 
     public function register(Request $request)
@@ -27,16 +28,16 @@ class UsersController extends Controller
             'street' => 'required|string|max:255',
         ]);
 
-        $user = Users::create([
+        $user = User::create([
             'FirstName' => $validated['firstName'],
             'LastName' => $validated['lastName'],
-            'Email' => $validated['email'],
+            'email' => $validated['email'],
             'Password' => bcrypt($validated['password']),
             'ContactNumber' => $validated['contactNumber'],
         ]);
 
-        // Save address to addresses table
-        \DB::table('addresses')->insert([
+        // Save address to addresses table and get AddressID
+        $addressId = \DB::table('addresses')->insertGetId([
             'UserID' => $user->UserID,
             'Barangay' => $validated['barangay'],
             'Municipality' => $validated['municipality'],
@@ -47,6 +48,13 @@ class UsersController extends Controller
             'updated_at' => now(),
         ]);
 
-        return response()->json(['message' => 'User registered successfully.'], 201);
+        // Set DefaultAddress in users table
+        $user->DefaultAddress = $addressId;
+        $user->save();
+
+        // Trigger email verification
+        event(new Registered($user));
+
+        return response()->json(['message' => 'User registered successfully. Verification email sent.', 'address' => ['AddressID' => $addressId], 'user' => $user], 201);
     }
 }
