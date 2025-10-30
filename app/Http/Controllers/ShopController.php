@@ -69,4 +69,58 @@ class ShopController extends Controller
 		$shops = \App\Models\Shop::whereIn('ShopID', $idArr)->get();
 		return response()->json($shops);
 	}
+
+	// Update shop details
+	public function update(Request $request, $id)
+	{
+		$shop = Shop::find($id);
+		if (!$shop) {
+			return response()->json(['error' => 'Shop not found'], 404);
+		}
+
+		$validated = $request->validate([
+			'ShopName' => 'sometimes|string|max:255',
+			'ShopDescription' => 'sometimes|string',
+			'Verification' => 'sometimes|in:Verified,Pending,Rejected',
+			'hasPhysical' => 'sometimes|boolean',
+			'LogoImage' => 'sometimes|nullable|file|image|max:2048',
+			'BackgroundImage' => 'sometimes|nullable|file|image|max:2048',
+			'BusinessPermit' => 'sometimes|nullable|file|image|max:2048',
+		]);
+
+		// Handle file uploads
+		if ($request->hasFile('LogoImage')) {
+			// Delete old logo if exists
+			if ($shop->LogoImage && \Storage::disk('public')->exists($shop->LogoImage)) {
+				\Storage::disk('public')->delete($shop->LogoImage);
+			}
+			$validated['LogoImage'] = $request->file('LogoImage')->store('shops/logos', 'public');
+		}
+
+		if ($request->hasFile('BackgroundImage')) {
+			// Delete old background if exists
+			if ($shop->BackgroundImage && \Storage::disk('public')->exists($shop->BackgroundImage)) {
+				\Storage::disk('public')->delete($shop->BackgroundImage);
+			}
+			$validated['BackgroundImage'] = $request->file('BackgroundImage')->store('shops/banners', 'public');
+		}
+
+		if ($request->hasFile('BusinessPermit')) {
+			// Delete old permit if exists
+			if ($shop->BusinessPermit && \Storage::disk('public')->exists($shop->BusinessPermit)) {
+				\Storage::disk('public')->delete($shop->BusinessPermit);
+			}
+			$validated['BackgroundImage'] = $request->file('BusinessPermit')->store('shops/permits', 'public');
+		}
+
+		$shop->update($validated);
+
+		return response()->json([
+			'success' => true,
+			'shop' => $shop,
+			'BackgroundImage' => $shop->BackgroundImage,
+			'LogoImage' => $shop->LogoImage,
+			'BusinessPermit' => $shop->BusinessPermit
+		]);
+	}
 }

@@ -10,6 +10,7 @@ import UserAvatar from "@/Components/Admin/UserAvatar";
 
 function Dashboard() {
   const [invalidUserIDs, setInvalidUserIDs] = useState([]);
+  const [showInvalidMessage, setShowInvalidMessage] = useState(false);
   const [specifyUsers, setSpecifyUsers] = useState(false);
   const [receiverIDsInput, setReceiverIDsInput] = useState("");
   const [receiverIDsList, setReceiverIDsList] = useState([]);
@@ -22,15 +23,12 @@ function Dashboard() {
   };
 
   const confirmPostAnnouncement = async () => {
-    if (specifyUsers && invalidUserIDs.length > 0) {
-      alert("Please remove all invalid users before posting.");
-      return;
-    }
     setPostingAnnouncement(true);
     try {
       let receiverIDs = [];
       if (specifyUsers && receiverIDsList.length > 0) {
-        receiverIDs = receiverIDsList;
+        // Convert string IDs to integers
+        receiverIDs = receiverIDsList.map(id => parseInt(id, 10));
       }
       await axios.post("http://127.0.0.1:8000/api/announcements", {
         Content: newAnnouncement,
@@ -392,9 +390,9 @@ function Dashboard() {
               </label>
               {specifyUsers && (
                 <div style={{ marginBottom: 12 }}>
-                  {invalidUserIDs.length > 0 && (
-                    <div style={{ color: '#b91c1c', fontSize: 13, marginBottom: 8 }}>
-                      Invalid user{invalidUserIDs.length > 1 ? 's' : ''}: {invalidUserIDs.join(', ')}
+                  {showInvalidMessage && (
+                    <div style={{ color: '#b91c1c', fontSize: 13, marginBottom: 8, fontWeight: 500 }}>
+                      Invalid user ID
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -414,12 +412,12 @@ function Dashboard() {
                               const resp = await axios.get(`http://127.0.0.1:8000/api/user/${id}`);
                               if (resp.data && !resp.data.error) {
                                 setReceiverIDsList([...receiverIDsList, id]);
-                                setInvalidUserIDs(invalidUserIDs.filter(uid => uid !== id));
+                                setShowInvalidMessage(false); // Hide message when valid user is added
                               } else {
-                                setInvalidUserIDs([...invalidUserIDs, id]);
+                                setShowInvalidMessage(true); // Show message for invalid user
                               }
                             } catch {
-                              setInvalidUserIDs([...invalidUserIDs, id]);
+                              setShowInvalidMessage(true); // Show message for invalid user
                             }
                           }
                           setReceiverIDsInput("");
@@ -430,16 +428,12 @@ function Dashboard() {
                   </div>
                   <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {receiverIDsList.map((id, idx) => (
-                      <span key={id} style={{ background: invalidUserIDs.includes(id) ? '#b91c1c' : '#2563eb', color: '#fff', borderRadius: 16, padding: '4px 12px', fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span key={id} style={{ background: '#2563eb', color: '#fff', borderRadius: 16, padding: '4px 12px', fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>
                         {id}
-                        {invalidUserIDs.includes(id) && (
-                          <span style={{ marginLeft: 6, fontWeight: 700, color: '#fff', fontSize: 13 }}>invalid user</span>
-                        )}
                         <button
                           style={{ background: 'none', border: 'none', color: '#fff', fontWeight: 700, marginLeft: 4, cursor: 'pointer', fontSize: 15 }}
                           onClick={() => {
                             setReceiverIDsList(receiverIDsList.filter((uid, i) => i !== idx));
-                            setInvalidUserIDs(invalidUserIDs.filter(uid => uid !== id));
                           }}
                           disabled={postingAnnouncement}
                         >×</button>
@@ -453,8 +447,8 @@ function Dashboard() {
                   onClick={() => setShowAnnConfirm(false)} disabled={postingAnnouncement}>
                   Cancel
                 </button>
-                <button style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 22px', fontWeight: 600, fontSize: 16, cursor: postingAnnouncement || (specifyUsers && invalidUserIDs.length > 0) ? 'not-allowed' : 'pointer' }}
-                  onClick={confirmPostAnnouncement} disabled={postingAnnouncement || (specifyUsers && invalidUserIDs.length > 0)}>
+                <button style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 22px', fontWeight: 600, fontSize: 16, cursor: postingAnnouncement ? 'not-allowed' : 'pointer' }}
+                  onClick={confirmPostAnnouncement} disabled={postingAnnouncement}>
                   {postingAnnouncement ? 'Posting...' : 'Confirm'}
                 </button>
               </div>

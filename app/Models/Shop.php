@@ -9,6 +9,6 @@ class Shop extends Model
 	protected $table = 'shops';
 	protected $primaryKey = 'ShopID';
 	protected $fillable = [
-		'UserID', 'ShopName', 'ShopDescription', 'LogoImage', 'BackgroundImage', 'AddressID', 'Address', 'BusinessPermit', 'isVerified', 'hasPhysical'
+		'UserID', 'ShopName', 'ShopDescription', 'LogoImage', 'BackgroundImage', 'AddressID', 'Address', 'BusinessPermit', 'isVerified', 'hasPhysical', 'Verification'
 	];
 }

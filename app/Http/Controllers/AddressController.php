@@ -31,4 +31,27 @@ class AddressController extends Controller
         $address = Address::create($validated);
         return response()->json($address, 201);
     }
+
+    public function update(Request $request, $id)
+    {
+        $address = Address::find($id);
+        if (!$address) {
+            return response()->json(['error' => 'Address not found'], 404);
+        }
+
+        $validated = $request->validate([
+            'HouseNumber' => 'sometimes|string|max:255',
+            'Street' => 'sometimes|string|max:255',
+            'Barangay' => 'sometimes|string|max:255',
+            'Municipality' => 'sometimes|string|max:255',
+            'ZipCode' => 'sometimes|string|max:10',
+        ]);
+
+        $address->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'address' => $address
+        ]);
+    }
 }

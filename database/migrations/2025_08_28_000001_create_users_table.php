@@ -28,13 +28,20 @@ return new class extends Migration
 
         Schema::create('admins', function (Blueprint $table) {
             $table->id('AdminID');
-            $table->foreignId('UserID') 
-                  ->constrained('users', 'UserID')
-                  ->onDelete('cascade');
             $table->boolean('IsSuperAdmin')->default(false);
+            $table->string('Password');
             $table->timestamps();
         });
-        DB::statement("ALTER TABLE admins AUTO_INCREMENT = 120000000;");
+        DB::statement("ALTER TABLE admins AUTO_INCREMENT = 12300001;");
+        
+        // Insert default admin
+        DB::table('admins')->insert([
+            'AdminID' => 12300001,
+            'IsSuperAdmin' => true,
+            'Password' => bcrypt('admin123'),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     public function down(): void

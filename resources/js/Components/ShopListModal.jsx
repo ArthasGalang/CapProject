@@ -25,7 +25,21 @@ const ShopListModal = ({
             {shops.filter(shop => shop.name && shop.name.trim()).length === 0 ? (
               <div style={{ textAlign: 'center', margin: '1.2rem 0', color: '#888' }}>No shops found.</div>
             ) : (
-              shops.filter(shop => shop.name && shop.name.trim()).map(shop => (
+              shops.filter(shop => shop.name && shop.name.trim()).map(shop => {
+                const getVerificationStyle = (status) => {
+                  switch(status) {
+                    case 'Verified':
+                      return { bg: '#d4edda', color: '#155724', border: '#c3e6cb' };
+                    case 'Rejected':
+                      return { bg: '#f8d7da', color: '#721c24', border: '#f5c6cb' };
+                    case 'Pending':
+                    default:
+                      return { bg: '#fff3cd', color: '#856404', border: '#ffeaa7' };
+                  }
+                };
+                const verificationStyle = getVerificationStyle(shop.verification);
+                
+                return (
                 <button
                   key={shop.id}
                   className="shop-modal-shop-btn"
@@ -52,11 +66,20 @@ const ShopListModal = ({
                     </div>
                     {shop.name}
                   </div>
-                  <span style={{ marginLeft: 16, fontWeight: 500, color: shop.isVerified ? '#2ECC71' : 'red', fontSize: '0.98rem' }}>
-                    {shop.isVerified ? 'Verified' : 'Unverified'}
+                  <span style={{ 
+                    marginLeft: 16, 
+                    fontWeight: 600, 
+                    fontSize: '0.85rem',
+                    padding: '4px 12px',
+                    borderRadius: '4px',
+                    backgroundColor: verificationStyle.bg,
+                    color: verificationStyle.color,
+                    border: `1px solid ${verificationStyle.border}`
+                  }}>
+                    {shop.verification || 'Pending'}
                   </span>
                 </button>
-              ))
+              )})
             )}
             {/* Add Shop: Show if shops are loaded and less than 3 exist */}
             {shops && Array.isArray(shops) && shops.length < 3 && (

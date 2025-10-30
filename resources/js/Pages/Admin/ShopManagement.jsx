@@ -39,6 +39,7 @@ const ShopManagement = () => {
   const PAGE_SIZE = 10;
   const [shops, setShops] = React.useState([]);
   const [owners, setOwners] = React.useState({});
+  const [addresses, setAddresses] = React.useState({});
   const [loading, setLoading] = React.useState(true);
   // Filter state
   const [filterStatus, setFilterStatus] = React.useState('All');
@@ -58,8 +59,9 @@ const ShopManagement = () => {
       .then(res => res.json())
       .then(async shopsData => {
         setShops(Array.isArray(shopsData) ? shopsData : []);
-        // Fetch owner data for each shop
+        // Fetch owner data and address data for each shop
         const ownerMap = {};
+        const addressMap = {};
         for (const shop of shopsData) {
           if (shop.UserID) {
             try {
@@ -70,8 +72,18 @@ const ShopManagement = () => {
               ownerMap[shop.ShopID] = null;
             }
           }
+          if (shop.AddressID) {
+            try {
+              const res = await fetch(`/api/addresses/${shop.AddressID}`);
+              const address = await res.json();
+              addressMap[shop.ShopID] = address;
+            } catch (err) {
+              addressMap[shop.ShopID] = null;
+            }
+          }
         }
         setOwners(ownerMap);
+        setAddresses(addressMap);
       })
       .catch(err => {
         console.error('Error fetching shops:', err);
@@ -383,7 +395,17 @@ const ShopManagement = () => {
             <div style={{ marginBottom: 12 }}>
               <div style={{ color: '#888', fontWeight: 500 }}>Address</div>
               <div style={{ color: '#2563eb', fontWeight: 600 }}>
-                {selectedShop.Address || `${selectedShop.HouseNumber || ''} ${selectedShop.Street || ''}, ${selectedShop.Barangay || ''}, ${selectedShop.Municipality || ''}, ${selectedShop.ZipCode || ''}`}
+                {addresses[selectedShop.ShopID] ? (
+                  [
+                    addresses[selectedShop.ShopID].HouseNumber || addresses[selectedShop.ShopID].houseNumber,
+                    addresses[selectedShop.ShopID].Street || addresses[selectedShop.ShopID].street,
+                    addresses[selectedShop.ShopID].Barangay || addresses[selectedShop.ShopID].barangay,
+                    addresses[selectedShop.ShopID].Municipality || addresses[selectedShop.ShopID].municipality,
+                    addresses[selectedShop.ShopID].ZipCode || addresses[selectedShop.ShopID].zipcode
+                  ].filter(Boolean).join(', ')
+                ) : (
+                  'No address available'
+                )}
               </div>
             </div>
             {/* Add more shop details as needed */}

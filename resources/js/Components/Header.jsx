@@ -61,6 +61,7 @@ const Header = () => {
                   id: shop.ShopID || shop.id,
                   name: shop.ShopName || shop.name,
                   logoUrl: shop.LogoImage ? `/storage/${shop.LogoImage.replace(/^storage\//, '')}` : shop.logoUrl,
+                  verification: shop.Verification || 'Pending',
                 }))
             : [];
           setShops(mapped);

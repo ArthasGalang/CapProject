@@ -22,6 +22,7 @@ const CreateShop = ({ onClose, onShopCreated }) => {
   const [logoPreview, setLogoPreview] = useState(null);
   const [bannerPreview, setBannerPreview] = useState(null);
   const [permitPreview, setPermitPreview] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
     // Fetch user's addresses
@@ -89,9 +90,7 @@ const CreateShop = ({ onClose, onShopCreated }) => {
     if (form.BusinessPermit instanceof File) fd.append('BusinessPermit', form.BusinessPermit);
     try {
       await axios.post('/api/shops', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      alert('Shop registered!');
-      if (onShopCreated) onShopCreated();
-      else if (onClose) onClose();
+      setShowSuccessModal(true);
     } catch {
       alert('Failed to register shop.');
     }
@@ -134,6 +133,28 @@ const CreateShop = ({ onClose, onShopCreated }) => {
 
   return (
     <div className="auth-modal-overlay">
+      {showSuccessModal && (
+        <div className="auth-modal-overlay" style={{ zIndex: 2000 }}>
+          <div className="auth-modal" style={{ width: '400px', maxWidth: '95vw', textAlign: 'center', padding: '2rem' }}>
+            <div style={{ fontSize: '4rem', color: '#2ECC71', marginBottom: '1rem' }}>✓</div>
+            <h2 className="auth-modal-title" style={{ marginBottom: '1rem' }}>Shop Created Successfully!</h2>
+            <p style={{ color: '#555', fontSize: '1.1rem', marginBottom: '2rem' }}>
+              Your shop has been registered and is now live.
+            </p>
+            <button 
+              className="auth-button" 
+              onClick={() => {
+                setShowSuccessModal(false);
+                if (onShopCreated) onShopCreated();
+                else if (onClose) onClose();
+              }}
+              style={{ width: '100%' }}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
       <div className="auth-modal" style={{ width: '500px', maxWidth: '95vw' }}>
         <button className="auth-modal-close" onClick={onClose}>&times;</button>
         <h2 className="auth-modal-title">Register Shop</h2>

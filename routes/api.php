@@ -229,6 +229,7 @@ Route::get('/addresses/{id}', function($id) {
         return response()->json(['error' => 'Address not found'], 404);
     }
 });
+Route::patch('/addresses/{id}', [AddressController::class, 'update']);
 
 Route::get('/shops', [ShopController::class, 'index']);
 Route::get('/shops/many', [ShopController::class, 'getMany']);
@@ -243,24 +244,11 @@ Route::get('/shops/{id}', function($id) {
     }
 });
 Route::post('/shops', [ShopController::class, 'store']);
+Route::patch('/shops/{id}', [ShopController::class, 'update']);
 Route::delete('/shops/{id}', function($id) {
     $shop = \DB::table('shops')->where('ShopID', $id);
     if ($shop->exists()) {
         $shop->delete();
-        return response()->json(['success' => true]);
-    } else {
-        return response()->json(['error' => 'Shop not found'], 404);
-    }
-});
-
-// PATCH route for updating shop Verification status
-Route::patch('/shops/{id}', function(Request $request, $id) {
-    $verification = $request->input('Verification');
-    if (!in_array($verification, ['Verified', 'Pending', 'Rejected'])) {
-        return response()->json(['error' => 'Invalid status'], 400);
-    }
-    $updated = \DB::table('shops')->where('ShopID', $id)->update(['Verification' => $verification, 'updated_at' => now()]);
-    if ($updated) {
         return response()->json(['success' => true]);
     } else {
         return response()->json(['error' => 'Shop not found'], 404);
@@ -335,3 +323,33 @@ Route::patch('/cart-items/{id}', [CartItemController::class, 'update']);
 
 // Get cart items count for authenticated user
 Route::middleware('auth:sanctum')->get('/cart-items/count', [CartController::class, 'countForAuthUser']);
+
+// Admin login
+Route::post('/admin/login', function(Request $request) {
+    $validated = $request->validate([
+        'adminId' => 'required',
+        'password' => 'required',
+    ]);
+
+    $admin = \DB::table('admins')->where('AdminID', $validated['adminId'])->first();
+
+    if (!$admin) {
+        return response()->json(['message' => 'Invalid Admin ID or Password'], 401);
+    }
+
+    if (!\Hash::check($validated['password'], $admin->Password)) {
+        return response()->json(['message' => 'Invalid Admin ID or Password'], 401);
+    }
+
+    // Generate a simple token (in production, use Laravel Sanctum or JWT)
+    $token = bin2hex(random_bytes(32));
+
+    return response()->json([
+        'message' => 'Login successful',
+        'token' => $token,
+        'admin' => [
+            'AdminID' => $admin->AdminID,
+            'IsSuperAdmin' => $admin->IsSuperAdmin,
+        ],
+    ]);
+});

@@ -7,9 +7,21 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
   const [loadingLogin, setLoadingLogin] = useState(false);
   const [loadingRegister, setLoadingRegister] = useState(false);
 
+  // Check if user is already logged in
+  const isUserLoggedIn = () => {
+    const token = localStorage.getItem('authToken');
+    const user = localStorage.getItem('user');
+    return !!(token && user);
+  };
+
   useEffect(() => {
     setIsSignIn(initialTab === 'login');
   }, [initialTab]);
+
+  // If user is already logged in, don't show the modal
+  if (isUserLoggedIn()) {
+    return null;
+  }
 
   // Login form state
   const [loginForm, setLoginForm] = useState({
@@ -38,6 +50,12 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
       });
       const data = await res.json();
       if (res.ok && data.token) {
+        // Check if user is banned
+        if (data.user && data.user.Status === 'Banned') {
+          setLoginError('Your account has been banned. Please contact support.');
+          setLoadingLogin(false);
+          return;
+        }
         localStorage.setItem('authToken', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         if (typeof onLoginSuccess === 'function') {

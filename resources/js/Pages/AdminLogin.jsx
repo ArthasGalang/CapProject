@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 const AdminLogin = () => {
-  const [email, setEmail] = useState('');
+  const [adminId, setAdminId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,7 +17,7 @@ const AdminLogin = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ adminId, password }),
       });
 
       const data = await response.json();
@@ -25,7 +25,7 @@ const AdminLogin = () => {
       if (response.ok) {
         // Store admin token/session
         localStorage.setItem('adminToken', data.token);
-        localStorage.setItem('adminUser', JSON.stringify(data.user));
+        localStorage.setItem('adminUser', JSON.stringify(data.admin));
         // Redirect to admin dashboard
         window.location.href = '/admin/dashboard';
       } else {
@@ -92,13 +92,13 @@ const AdminLogin = () => {
               marginBottom: '0.5rem',
               fontSize: '0.95rem',
             }}>
-              Email Address
+              Admin ID
             </label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@negogent.com"
+              type="text"
+              value={adminId}
+              onChange={(e) => setAdminId(e.target.value)}
+              placeholder="12300001"
               required
               style={{
                 width: '100%',
