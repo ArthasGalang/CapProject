@@ -176,6 +176,18 @@ Route::post('/addresses', [AddressController::class, 'store']);
 Route::post('/register', [UsersController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+// Temporary: Manual email verification (remove after use)
+Route::get('/verify-email-manual/{email}', function($email) {
+    $user = \App\Models\User::where('Email', $email)->first();
+    if ($user) {
+        $user->email_verified_at = now();
+        $user->save();
+        return response()->json(['message' => 'Email verified successfully!', 'user' => $user]);
+    }
+    return response()->json(['error' => 'User not found'], 404);
+});
+
+
 
 Route::get('/shop-orders', [ShopOrderController::class, 'index']);
 Route::get('/products', [ProductController::class, 'index']);
