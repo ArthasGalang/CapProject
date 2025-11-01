@@ -1,1 +1,1 @@
-web: php artisan migrate:fresh --force --seed && php artisan config:cache && php artisan serve --host=0.0.0.0 --port=$PORT
+web: echo "🚀 Starting deployment..." && echo "📊 Running migrations..." && php artisan migrate:fresh --force --seed && echo "✅ Migrations complete!" && echo "🔧 Caching config..." && php artisan config:cache && echo "🌐 Starting server..." && php artisan serve --host=0.0.0.0 --port=$PORT
