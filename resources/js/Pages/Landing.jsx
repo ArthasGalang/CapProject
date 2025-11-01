@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from "react";
+import { apiUrl } from '@js/config/api';
 import FloatingChatButton from "../Components/FloatingChatButton";
 import Header from "@/Components/Header";
 import ShopListModal from "../Components/ShopListModal";
@@ -127,7 +128,7 @@ const Landing = () => {
     useEffect(() => {
         if (showShopModal && userId) {
             setShopsLoading(true);
-            fetch(`http://127.0.0.1:8000/api/shops?user_id=${userId}`)
+            fetch(apiUrl(`api/shops?user_id=${userId}`))
                 .then(res => res.json())
                 .then(data => {
                     const mapped = Array.isArray(data)
@@ -282,3 +283,4 @@ const Landing = () => {
 };
 
 export default Landing;
+

@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { apiUrl } from '@js/config/api';
 
 // Add onLoginSuccess prop to notify parent
 const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) => {
@@ -43,7 +44,7 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
     }
     setLoadingLogin(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/login', {
+      const res = await fetch(apiUrl('api/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify(loginForm),
@@ -117,7 +118,7 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
     }
     setLoadingRegister(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/register', {
+      const res = await fetch(apiUrl('api/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify(regForm),
@@ -200,7 +201,7 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
                     setResendError('');
                     try {
                       const token = localStorage.getItem('authToken');
-                      const res = await fetch('http://127.0.0.1:8000/email/verification-notification', {
+                      const res = await fetch(apiUrl('email/verification-notification'), {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json',

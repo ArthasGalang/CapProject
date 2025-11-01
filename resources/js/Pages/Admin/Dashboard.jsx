@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaUser, FaCheck, FaClipboardList, FaEnvelope } from "react-icons/fa";
 import AdminLayout from "@/Components/Admin/AdminLayout";
 import axios from "axios";
+import { API_URL } from '@js/config/api';
 import UserAvatar from "@/Components/Admin/UserAvatar";
 
 
@@ -30,7 +31,7 @@ function Dashboard() {
         // Convert string IDs to integers
         receiverIDs = receiverIDsList.map(id => parseInt(id, 10));
       }
-      await axios.post("http://127.0.0.1:8000/api/announcements", {
+      await axios.post("${API_URL}/api/announcements", {
         Content: newAnnouncement,
         ReceiverIDs: JSON.stringify(receiverIDs)
       });
@@ -39,7 +40,7 @@ function Dashboard() {
       setReceiverIDsList([]);
       setInvalidUserIDs([]);
       setSpecifyUsers(false);
-      const resp = await axios.get("http://127.0.0.1:8000/api/announcements");
+      const resp = await axios.get("${API_URL}/api/announcements");
       setAnnouncements(resp.data);
     } catch (err) {
       alert("Failed to post announcement.");
@@ -48,7 +49,7 @@ function Dashboard() {
     setShowAnnConfirm(false);
   };
   useEffect(() => {
-    axios.get("http://127.0.0.1:8000/api/announcements")
+    axios.get("${API_URL}/api/announcements")
       .then(response => {
         setAnnouncements(response.data);
         console.log("Fetched announcements:", response.data);
@@ -68,22 +69,22 @@ function Dashboard() {
     setLoadingAction(true);
     try {
       if (confirmAction === 'delete') {
-        await axios.delete(`http://127.0.0.1:8000/api/shops/${shopDetails.ShopID}`);
+        await axios.delete(`${API_URL}/api/shops/${shopDetails.ShopID}`);
         setShowShopModal(false);
         setShopDetails(null);
         // Optionally refresh shops list
-        axios.get("http://127.0.0.1:8000/api/shops").then(response => setShops(response.data.slice(0, 5)));
+        axios.get("${API_URL}/api/shops").then(response => setShops(response.data.slice(0, 5)));
       } else if (['verify', 'reject', 'revert'].includes(confirmAction)) {
         let newStatus = shopDetails.Verification;
         if (confirmAction === 'verify') newStatus = 'Verified';
         if (confirmAction === 'reject') newStatus = 'Rejected';
         if (confirmAction === 'revert') newStatus = 'Pending';
-        await axios.patch(`http://127.0.0.1:8000/api/shops/${shopDetails.ShopID}`, { Verification: newStatus });
+        await axios.patch(`${API_URL}/api/shops/${shopDetails.ShopID}`, { Verification: newStatus });
         // Refetch shop details
-        const resp = await axios.get(`http://127.0.0.1:8000/api/shops/${shopDetails.ShopID}`);
+        const resp = await axios.get(`${API_URL}/api/shops/${shopDetails.ShopID}`);
         setShopDetails(resp.data);
         // Optionally refresh shops list
-        axios.get("http://127.0.0.1:8000/api/shops").then(response => setShops(response.data.slice(0, 5)));
+        axios.get("${API_URL}/api/shops").then(response => setShops(response.data.slice(0, 5)));
       }
     } catch (err) {
       alert('Action failed.');
@@ -103,7 +104,7 @@ function Dashboard() {
   useEffect(() => {
     // Fetch address when shopDetails changes
     if (showShopModal && shopDetails && shopDetails.AddressID) {
-      axios.get(`http://127.0.0.1:8000/api/addresses/${shopDetails.AddressID}`)
+      axios.get(`${API_URL}/api/addresses/${shopDetails.AddressID}`)
         .then(response => {
           const addr = response.data;
           console.log('Fetched address:', addr); // Show address object in console
@@ -118,14 +119,14 @@ function Dashboard() {
     } else {
       setAddressString('');
     }
-    axios.get("http://127.0.0.1:8000/api/reports/view")
+    axios.get("${API_URL}/api/reports/view")
       .then(response => {
         setRecentReports(response.data.slice(0, 5));
         console.log("Fetched reports view:", response.data);
       })
       .catch(error => console.error("Error fetching reports view:", error));
 
-    axios.get("http://127.0.0.1:8000/api/shops")
+    axios.get("${API_URL}/api/shops")
       .then(response => {
         setShops(response.data.slice(0, 5));
         console.log("Fetched shops:", response.data);
@@ -133,7 +134,7 @@ function Dashboard() {
       .catch(error => console.error("Error fetching shops:", error));
   }, []);
   useEffect(() => {
-    axios.get("http://127.0.0.1:8000/api/reports")
+    axios.get("${API_URL}/api/reports")
       .then(response => {
         console.log("Fetched reports:", response.data);
       })
@@ -147,11 +148,11 @@ function Dashboard() {
   const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
-    axios.get("http://127.0.0.1:8000/users")
+    axios.get("${API_URL}/users")
       .then(response => setUsers(response.data))
       .catch(error => console.error(error));
 
-    axios.get("http://127.0.0.1:8000/api/shops")
+    axios.get("${API_URL}/api/shops")
       .then(response => {
         const pendingCount = Array.isArray(response.data)
           ? response.data.filter(shop => shop.Verification === 'Pending').length
@@ -160,11 +161,11 @@ function Dashboard() {
       })
       .catch(error => setPendingVerifications(0));
 
-    axios.get("http://127.0.0.1:8000/api/reports/open-count")
+    axios.get("${API_URL}/api/reports/open-count")
       .then(response => setOpenReports(response.data.open_reports))
       .catch(error => setOpenReports(0));
 
-    axios.get("http://127.0.0.1:8000/api/adminmessages/unread-count")
+    axios.get("${API_URL}/api/adminmessages/unread-count")
       .then(response => setUnreadMessages(response.data.unread_messages))
       .catch(error => setUnreadMessages(0));
   }, []);
@@ -409,7 +410,7 @@ function Dashboard() {
                           if (!receiverIDsList.includes(id)) {
                             // Validate userID
                             try {
-                              const resp = await axios.get(`http://127.0.0.1:8000/api/user/${id}`);
+                              const resp = await axios.get(`${API_URL}/api/user/${id}`);
                               if (resp.data && !resp.data.error) {
                                 setReceiverIDsList([...receiverIDsList, id]);
                                 setShowInvalidMessage(false); // Hide message when valid user is added
@@ -515,7 +516,7 @@ function Dashboard() {
                           setShowShopModal(true);
                           setSelectedShop(shop.ShopID || shop.id);
                           setShopDetails(null);
-                          axios.get(`http://127.0.0.1:8000/api/shops/${shop.ShopID || shop.id}`)
+                          axios.get(`${API_URL}/api/shops/${shop.ShopID || shop.id}`)
                             .then(response => setShopDetails(response.data))
                             .catch(error => setShopDetails({ error: 'Failed to fetch shop details.' }));
                         }}
@@ -581,7 +582,7 @@ function Dashboard() {
                           onClick={() => {
                             setShowReportModal(true);
                             setReportDetails(null);
-                            axios.get(`http://127.0.0.1:8000/api/reports/${rep.ReportID}`)
+                            axios.get(`${API_URL}/api/reports/${rep.ReportID}`)
                               .then(response => {
                                 console.log('Fetched report details:', response.data);
                                 setReportDetails(response.data);
@@ -650,3 +651,4 @@ function Dashboard() {
 }
 
 export default Dashboard;
+

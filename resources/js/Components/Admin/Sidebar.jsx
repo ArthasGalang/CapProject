@@ -1,5 +1,6 @@
 // Sidebar.jsx
 import React from "react";
+import { apiUrl } from '@js/config/api';
 import { Home, Users, Flag, Mail, Settings, LogOut, Store } from "lucide-react";
 
 export default function Sidebar({ isOpen }) {
@@ -107,7 +108,7 @@ export default function Sidebar({ isOpen }) {
                     }
                     setLoadingChat(true);
                     try {
-                      const response = await fetch(`http://127.0.0.1:8000/api/usermessages/between/${userID1}/${userID2}`);
+                      const response = await fetch(`api/usermessages/between/${userID1}/${userID2}`);
                       const data = await response.json();
                       setChatLog(Array.isArray(data) ? data : []);
                       setShowChat(true);
@@ -160,3 +161,4 @@ export default function Sidebar({ isOpen }) {
     </>
   );
 }
+

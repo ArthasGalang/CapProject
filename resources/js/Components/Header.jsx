@@ -1,4 +1,5 @@
 import React from "react";
+import { apiUrl } from '@js/config/api';
 import CreateShop from "./CreateShop";
 import ShopListModal from "./ShopListModal";
 import LoginRegister from "./LoginRegister";
@@ -51,7 +52,7 @@ const Header = () => {
   React.useEffect(() => {
     if ((showShopModal && userId) || shouldReloadShops) {
       setShopsLoading(true);
-      fetch(`http://127.0.0.1:8000/api/shops?user_id=${userId}`)
+      fetch(apiUrl(`api/shops?user_id=${userId}`))
         .then(res => res.json())
         .then(data => {
           const mapped = Array.isArray(data)
@@ -82,7 +83,7 @@ const Header = () => {
   // Fetch addresses for current user on mount
   React.useEffect(() => {
     if (userId) {
-      fetch(`http://127.0.0.1:8000/api/user/${userId}/addresses`, {
+      fetch(apiUrl(`api/user/${userId}/addresses`), {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
       })
         .then(res => res.json())
