@@ -63,6 +63,8 @@ const AuthModal = ({ isOpen, onClose, initialTab = 'login', onLoginSuccess }) =>
           onLoginSuccess({ token: data.token, user: data.user });
         }
         onClose();
+        // Force page reload to update auth state
+        window.location.reload();
       } else {
         setLoginError(data.message || 'Login failed.');
       }
